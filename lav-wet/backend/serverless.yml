@@ -1,0 +1,255 @@
+service: lavanderia-backend
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 30
+  
+  # Variables de entorno
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DB_HOST: ${env:DB_HOST}
+    DB_PORT: ${env:DB_PORT, '3306'}
+    DB_NAME: ${env:DB_NAME}
+    DB_USER: ${env:DB_USER}
+    DB_PASSWORD: ${env:DB_PASSWORD}
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '24h'}
+    CORS_ORIGIN: ${env:CORS_ORIGIN}
+    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    RATE_LIMIT_WINDOW_MS: ${env:RATE_LIMIT_WINDOW_MS, '900000'}
+    RATE_LIMIT_MAX_REQUESTS: ${env:RATE_LIMIT_MAX_REQUESTS, '100'}
+  
+  # Configuración de IAM
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: 
+            - 'arn:aws:logs:${self:provider.region}:*:log-group:/aws/lambda/*:*:*'
+        - Effect: Allow
+          Action:
+            - rds:DescribeDBInstances
+            - rds:DescribeDBClusters
+          Resource: '*'
+
+  # Configuración de VPC (si la base de datos está en VPC)
+  # vpc:
+  #   securityGroupIds:
+  #     - sg-xxxxxxxxx
+  #   subnetIds:
+  #     - subnet-xxxxxxxxx
+  #     - subnet-yyyyyyyyy
+
+# Funciones Lambda
+functions:
+  # Función principal de la API
+  api:
+    handler: dist/server.handler
+    description: 'API principal del sistema de gestión de guías de lavandería'
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors:
+            origin: ${env:CORS_ORIGIN, '*'}
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
+    environment:
+      FUNCTION_NAME: api
+    
+  # Función para autenticación (opcional, separada para mejor performance)
+  auth:
+    handler: dist/handlers/auth.handler
+    description: 'Función especializada para autenticación'
+    events:
+      - http:
+          path: /auth/{proxy+}
+          method: ANY
+          cors:
+            origin: ${env:CORS_ORIGIN, '*'}
+            allowCredentials: true
+    environment:
+      FUNCTION_NAME: auth
+    memorySize: 256
+    timeout: 15
+
+  # Función para reportes (opcional, para operaciones pesadas)
+  reports:
+    handler: dist/handlers/reports.handler
+    description: 'Función para generación de reportes'
+    events:
+      - http:
+          path: /reports/{proxy+}
+          method: ANY
+          cors:
+            origin: ${env:CORS_ORIGIN, '*'}
+            allowCredentials: true
+    environment:
+      FUNCTION_NAME: reports
+    memorySize: 1024
+    timeout: 60
+
+  # Función para tareas programadas (opcional)
+  scheduler:
+    handler: dist/handlers/scheduler.handler
+    description: 'Función para tareas programadas'
+    events:
+      - schedule:
+          rate: cron(0 2 * * ? *)  # Todos los días a las 2 AM
+          description: 'Limpieza diaria de logs y backups'
+    environment:
+      FUNCTION_NAME: scheduler
+
+# Plugins necesarios
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+  - serverless-webpack
+  - serverless-prune-plugin
+
+# Configuración de plugins
+custom:
+  # Variables personalizadas
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  
+  # Configuración de webpack
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
+    excludeFiles: src/**/*.test.js
+  
+  # Configuración de serverless-offline
+  serverless-offline:
+    httpPort: 3001
+    host: 0.0.0.0
+    stage: ${self:custom.stage}
+    prefix: api
+    printOutput: true
+  
+  # Configuración de dotenv
+  dotenv:
+    path: .env.${self:custom.stage}
+    basePath: ./
+    include:
+      - DB_HOST
+      - DB_PORT
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - JWT_SECRET
+      - JWT_EXPIRES_IN
+      - CORS_ORIGIN
+      - LOG_LEVEL
+  
+  # Configuración de prune (limpiar versiones antiguas)
+  prune:
+    automatic: true
+    number: 3
+
+# Recursos adicionales de AWS
+resources:
+  Resources:
+    # S3 Bucket para archivos (opcional)
+    FilesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:custom.stage}-files
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+              AllowedOrigins:
+                - ${env:CORS_ORIGIN, '*'}
+              MaxAge: 3000
+    
+    # CloudWatch Log Group
+    ApiLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:custom.stage}-api
+        RetentionInDays: 14
+    
+    # DynamoDB Table para sesiones (opcional)
+    SessionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:custom.stage}-sessions
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: sessionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: sessionId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+  # Outputs para otros servicios
+  Outputs:
+    ApiGatewayRestApiId:
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:custom.stage}-restApiId
+    
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      Export:
+        Name: ${self:service}-${self:custom.stage}-rootResourceId
+    
+    FilesBucketName:
+      Value:
+        Ref: FilesBucket
+      Export:
+        Name: ${self:service}-${self:custom.stage}-filesBucket
+
+# Configuración de empaquetado
+package:
+  individually: false
+  exclude:
+    - .git/**
+    - .gitignore
+    - README.md
+    - src/**
+    - tests/**
+    - '*.test.js'
+    - coverage/**
+    - .nyc_output/**
+    - node_modules/aws-sdk/**
+    - node_modules/@types/**
+    - '**/*.map'
+    - '**/*.ts'
+    - tsconfig.json
+    - webpack.config.js
+    - .env*
+  include:
+    - dist/**
+    - node_modules/**
+    - package.json
