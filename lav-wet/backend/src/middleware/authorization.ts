@@ -159,8 +159,8 @@ export const requireOwnHotelGuias = (req: Request, res: Response, next: NextFunc
 // Solo administradores pueden gestionar usuarios y hoteles
 export const requireAdmin = requireRole([Perfiles.ADMINISTRADOR]);
 
-// Solo recepcionistas pueden crear guías
-export const requireRecepcionista = requireRole([Perfiles.RECEPCIONISTA]);
+// Solo recepcionistas y administradores pueden crear guías
+export const requireRecepcionista = requireRole([Perfiles.RECEPCIONISTA, Perfiles.ADMINISTRADOR]);
 
 // Solo operarios pueden procesar cantidades
 export const requireOperario = requireRole([Perfiles.OPERARIO]);

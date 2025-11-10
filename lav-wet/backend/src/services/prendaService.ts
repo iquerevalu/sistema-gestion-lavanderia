@@ -11,24 +11,52 @@ export interface UpdatePrendaRequest extends Partial<CreatePrendaRequest> {
   id_prenda: number;
 }
 
-// Obtener todas las prendas con información de categoría
-export const getAllPrendas = async (): Promise<Prenda[]> => {
+// Obtener todas las prendas con información de categoría y paginación
+export const getAllPrendas = async (page: number = 1, limit: number = 10): Promise<{ prendas: Prenda[]; total: number }> => {
   try {
-    const query = `
+    console.log('🔍 getAllPrendas - Iniciando consulta, page:', page, 'limit:', limit);
+    const offset = (page - 1) * limit;
+    
+    const prendasQuery = `
       SELECT 
         p.id_prenda,
         p.categoria_id,
         p.nombre_prenda,
         p.descripcion,
-        c.nombre_categoria
+        c.nombre_categoria,
+        1 as estado,
+        NOW() as fecha_creacion,
+        NOW() as fecha_actualizacion
       FROM lv_prenda p
       INNER JOIN lv_categoria c ON p.categoria_id = c.id_categoria
       ORDER BY c.nombre_categoria ASC, p.nombre_prenda ASC
+      LIMIT ${limit} OFFSET ${offset}
     `;
     
-    return await executeQuery<Prenda>(query);
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM lv_prenda
+    `;
+    
+    console.log('📝 Ejecutando query de prendas...');
+    console.log('📝 Query:', prendasQuery);
+    
+    const [prendas, countResult] = await Promise.all([
+      executeQuery<Prenda>(prendasQuery),
+      executeQuery<{ total: number }>(countQuery)
+    ]);
+    
+    console.log('👕 Prendas encontradas:', prendas.length);
+    console.log('📊 Total en BD:', countResult[0]?.total || 0);
+    console.log('🔍 Primera prenda:', prendas[0]);
+    
+    return {
+      prendas,
+      total: countResult[0]?.total || 0
+    };
   } catch (error) {
-    console.error('Error obteniendo prendas:', error);
+    console.error('❌ Error obteniendo prendas:', error);
+    console.error('❌ Stack:', error instanceof Error ? error.stack : 'No stack available');
     throw new Error('Error interno del servidor');
   }
 };

@@ -1,21 +1,21 @@
 import { Router } from 'express';
-import { 
-  getGuias,
-  getGuia,
-  createNewGuia,
-  updateCantidades,
-  updateEstado,
-  getHotelPrendasDisponibles,
-  getGuiasParaProcesar,
-  getGuiasTracking
+import {
+    getGuias,
+    getGuia,
+    createNewGuia,
+    updateCantidades,
+    updateEstado,
+    getHotelPrendasDisponibles,
+    getGuiasParaProcesar,
+    getGuiasTracking
 } from '../controllers/guiaController.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { 
-  requireRecepcionista,
-  requireOperario,
-  requireEncargadoOrAdmin,
-  requireOperarioOrAdmin,
-  requireOwnHotelGuias
+import {
+    requireRecepcionista,
+    requireOperario,
+    requireEncargadoOrAdmin,
+    requireOperarioOrAdmin,
+    requireOwnHotelGuias
 } from '../middleware/authorization.js';
 
 const router = Router();

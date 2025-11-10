@@ -44,6 +44,29 @@ export const createUserSchema = Joi.object({
   hotel_id: Joi.number().integer().positive().optional().allow(null)
 });
 
+// Esquema de validación para actualizar usuario
+export const updateUserSchema = Joi.object({
+  nombre_completo: Joi.string().min(2).max(100).required().messages({
+    'string.min': 'El nombre debe tener al menos 2 caracteres',
+    'string.max': 'El nombre no puede exceder 100 caracteres',
+    'any.required': 'El nombre completo es requerido'
+  }),
+  correo: Joi.string().email().required().messages({
+    'string.email': 'Debe ser un correo electrónico válido',
+    'any.required': 'El correo es requerido'
+  }),
+  password: Joi.string().min(6).optional().allow('').messages({
+    'string.min': 'La contraseña debe tener al menos 6 caracteres'
+  }),
+  telefono: Joi.string().optional().allow(''),
+  perfil_id: Joi.number().integer().positive().required().messages({
+    'number.base': 'El perfil debe ser un número',
+    'number.positive': 'El perfil debe ser un número positivo',
+    'any.required': 'El perfil es requerido'
+  }),
+  hotel_id: Joi.number().integer().positive().optional().allow(null)
+});
+
 // Esquema de validación para crear hotel
 export const createHotelSchema = Joi.object({
   ruc: Joi.string().length(11).optional().allow('').messages({
@@ -59,7 +82,11 @@ export const createHotelSchema = Joi.object({
   correo_contacto: Joi.string().email().optional().allow('').messages({
     'string.email': 'Debe ser un correo electrónico válido'
   }),
-  telefono: Joi.string().max(20).optional().allow('')
+  telefono: Joi.string().max(20).optional().allow(''),
+  estado: Joi.number().integer().valid(0, 1).optional().messages({
+    'number.base': 'El estado debe ser un número',
+    'any.only': 'El estado debe ser 0 (inactivo) o 1 (activo)'
+  })
 });
 
 // Middleware genérico de validación
@@ -97,4 +124,5 @@ export const validate = (schema: Joi.ObjectSchema) => {
 export const validateLogin = validate(loginSchema);
 export const validateRefreshToken = validate(refreshTokenSchema);
 export const validateCreateUser = validate(createUserSchema);
+export const validateUpdateUser = validate(updateUserSchema);
 export const validateCreateHotel = validate(createHotelSchema);

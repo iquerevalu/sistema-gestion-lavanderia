@@ -18,10 +18,25 @@ const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   showInfo = true
 }) => {
-  if (totalPages <= 1) return null;
-
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  // Si solo hay una página, mostrar solo la información sin controles
+  if (totalPages <= 1) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4">
+        <div className="flex justify-center">
+          {showInfo && totalItems > 0 && (
+            <div className="text-sm text-gray-700">
+              Mostrando <span className="font-medium">{startItem}</span> a{' '}
+              <span className="font-medium">{endItem}</span> de{' '}
+              <span className="font-medium">{totalItems}</span> resultados
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const getVisiblePages = () => {
     const delta = 2;

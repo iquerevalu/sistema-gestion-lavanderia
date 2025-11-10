@@ -4,7 +4,7 @@ import { GuiaLavanderia, DetalleGuia, HistorialEstado } from '../types/index.js'
 export interface CreateGuiaRequest {
   hotel_id: number;
   chofer_recojo_id: number;
-  recepcionista_recojo_id: number;
+  recepcionista_recojo_id?: number; // Opcional, se usa el usuario logueado si no se especifica
   fecha_recoleccion: string; // YYYY-MM-DD
   observaciones?: string;
   prendas: {
@@ -221,6 +221,11 @@ export const getGuiaById = async (id: number): Promise<GuiaLavanderia & { prenda
 // Crear nueva guía
 export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number): Promise<GuiaLavanderia> => {
   try {
+    // Si no se especifica recepcionista, usar el usuario logueado
+    const recepcionistaId = guiaData.recepcionista_recojo_id || usuarioId;
+    
+    console.log('📝 Creando guía con recepcionista:', recepcionistaId, '(usuario logueado:', usuarioId, ')');
+    
     // Verificar que el hotel existe
     const hotelQuery = `
       SELECT id_hotel, nombre_comercial 
@@ -239,7 +244,7 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
       INNER JOIN lv_perfil p ON u.perfil_id = p.id_perfil
       WHERE u.id_usuario IN (?, ?) AND u.estado = 1
     `;
-    const usuarios = await executeQuery(usuariosQuery, [guiaData.chofer_recojo_id, guiaData.recepcionista_recojo_id]);
+    const usuarios = await executeQuery(usuariosQuery, [guiaData.chofer_recojo_id, recepcionistaId]);
     
     if (usuarios.length !== 2) {
       throw new Error('Uno o más usuarios especificados no existen');
@@ -304,7 +309,7 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
           numeroGuia,
           guiaData.hotel_id,
           guiaData.chofer_recojo_id,
-          guiaData.recepcionista_recojo_id,
+          recepcionistaId, // Usar el recepcionista calculado (usuario logueado si no se especifica)
           guiaData.fecha_recoleccion,
           guiaData.observaciones || null
         ]

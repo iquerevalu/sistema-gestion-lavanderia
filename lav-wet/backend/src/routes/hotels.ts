@@ -4,7 +4,8 @@ import {
   getHotel, 
   createNewHotel, 
   updateExistingHotel, 
-  removeHotel 
+  removeHotel,
+  getHotelPrendas
 } from '../controllers/hotelController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/authorization.js';
@@ -29,5 +30,8 @@ router.put('/:id', requireAdmin, validateCreateHotel, updateExistingHotel);
 
 // DELETE /api/hoteles/:id - Eliminar hotel (solo administradores)
 router.delete('/:id', requireAdmin, removeHotel);
+
+// GET /api/hoteles/:id/prendas - Obtener prendas disponibles para un hotel
+router.get('/:id/prendas', getHotelPrendas);
 
 export default router;

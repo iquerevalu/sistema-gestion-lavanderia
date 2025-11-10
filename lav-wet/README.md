@@ -554,4 +554,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para
 
 ---
 
-**Desarrollado con ❤️ usando React, TypeScript y Node.js**
+**Desarrollado usando React, TypeScript y Node.js**

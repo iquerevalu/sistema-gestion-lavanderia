@@ -13,22 +13,42 @@ import {
 // Obtener todas las prendas
 export const getPrendas = async (req: Request, res: Response): Promise<void> => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
     const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id as string) : null;
     
-    let prendas;
+    let result;
     
     if (search) {
-      prendas = await searchPrendas(search);
+      const prendas = await searchPrendas(search);
+      result = {
+        prendas,
+        total: prendas.length,
+        page: 1,
+        totalPages: 1
+      };
     } else if (categoriaId) {
-      prendas = await getPrendasByCategoria(categoriaId);
+      const prendas = await getPrendasByCategoria(categoriaId);
+      result = {
+        prendas,
+        total: prendas.length,
+        page: 1,
+        totalPages: 1
+      };
     } else {
-      prendas = await getAllPrendas();
+      const { prendas, total } = await getAllPrendas(page, limit);
+      result = {
+        prendas,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      };
     }
     
     res.json({
       success: true,
-      data: prendas
+      data: result
     });
   } catch (error: any) {
     console.error('Error obteniendo prendas:', error);

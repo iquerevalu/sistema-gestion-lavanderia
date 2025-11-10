@@ -4,6 +4,7 @@ export interface Usuario {
   id_usuario: number;
   nombre_completo: string;
   correo: string;
+  password?: string; // Agregado para autenticación
   telefono?: string;
   perfil_id: number;
   hotel_id?: number;
@@ -149,6 +150,29 @@ export interface UpdateCantidadesRequest {
     id_detalle: number;
     cantidad_limpia: number;
   }[];
+}
+
+// Tipos adicionales para autenticación
+export interface JwtPayload {
+  userId: number;
+  correo: string;
+  email: string; // Alias para compatibilidad
+  perfil: string;
+  hotelId?: number;
+  iat?: number;
+  exp?: number;
+}
+
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  connectionLimit?: number;
+  acquireTimeout?: number;
+  timeout?: number;
+  reconnect?: boolean;
 }
 
 // Extensiones de Express Request

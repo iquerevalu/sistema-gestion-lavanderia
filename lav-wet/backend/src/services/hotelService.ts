@@ -8,6 +8,7 @@ export interface CreateHotelRequest {
   direccion?: string;
   correo_contacto?: string;
   telefono?: string;
+  estado?: number;
 }
 
 export interface UpdateHotelRequest extends Partial<CreateHotelRequest> {
@@ -50,6 +51,12 @@ export const getAllHotels = async (page: number = 1, limit: number = 10): Promis
       executeQuery<{ total: number }>(countQuery)
     ]);
     
+    console.log('🏨 Hoteles encontrados:', hotels.length);
+    console.log('📊 Total en BD:', countResult[0]?.total || 0);
+    console.log('🔍 Hoteles devueltos:', hotels.map(h => ({ id: h.id_hotel, nombre: h.nombre_comercial, estado: h.estado })));
+    console.log('🔍 Query hoteles:', hotelsQuery);
+    console.log('🔍 Query count:', countQuery);
+    
     return {
       hotels,
       total: countResult[0]?.total || 0
@@ -60,7 +67,7 @@ export const getAllHotels = async (page: number = 1, limit: number = 10): Promis
   }
 };
 
-// Obtener hotel por ID
+// Obtener hotel por ID (solo activos)
 export const getHotelById = async (id: number): Promise<Hotel | null> => {
   try {
     const query = `
@@ -77,6 +84,33 @@ export const getHotelById = async (id: number): Promise<Hotel | null> => {
         fecha_actualizacion
       FROM lv_hotel 
       WHERE id_hotel = ? AND estado = 1
+    `;
+    
+    const hotels = await executeQuery<Hotel>(query, [id]);
+    return hotels.length > 0 ? hotels[0] : null;
+  } catch (error) {
+    console.error('Error obteniendo hotel:', error);
+    throw new Error('Error interno del servidor');
+  }
+};
+
+// Obtener hotel por ID (sin filtrar por estado - para operaciones internas)
+export const getHotelByIdInternal = async (id: number): Promise<Hotel | null> => {
+  try {
+    const query = `
+      SELECT 
+        id_hotel,
+        ruc,
+        razon_social,
+        nombre_comercial,
+        direccion,
+        correo_contacto,
+        telefono,
+        estado,
+        fecha_creacion,
+        fecha_actualizacion
+      FROM lv_hotel 
+      WHERE id_hotel = ?
     `;
     
     const hotels = await executeQuery<Hotel>(query, [id]);
@@ -156,8 +190,8 @@ export const createHotel = async (hotelData: CreateHotelRequest): Promise<Hotel>
 // Actualizar hotel
 export const updateHotel = async (hotelData: UpdateHotelRequest): Promise<Hotel> => {
   try {
-    // Verificar que el hotel existe
-    const existingHotel = await getHotelById(hotelData.id_hotel);
+    // Verificar que el hotel existe (usar función interna que no filtra por estado)
+    const existingHotel = await getHotelByIdInternal(hotelData.id_hotel);
     if (!existingHotel) {
       throw new Error('Hotel no encontrado');
     }
@@ -184,8 +218,9 @@ export const updateHotel = async (hotelData: UpdateHotelRequest): Promise<Hotel>
         direccion = COALESCE(?, direccion),
         correo_contacto = COALESCE(?, correo_contacto),
         telefono = COALESCE(?, telefono),
+        estado = COALESCE(?, estado),
         fecha_actualizacion = CURRENT_TIMESTAMP
-      WHERE id_hotel = ? AND estado = 1
+      WHERE id_hotel = ?
     `;
     
     await executeQuery(updateQuery, [
@@ -195,11 +230,12 @@ export const updateHotel = async (hotelData: UpdateHotelRequest): Promise<Hotel>
       hotelData.direccion || null,
       hotelData.correo_contacto || null,
       hotelData.telefono || null,
+      hotelData.estado !== undefined ? hotelData.estado : null,
       hotelData.id_hotel
     ]);
     
-    // Obtener el hotel actualizado
-    const updatedHotel = await getHotelById(hotelData.id_hotel);
+    // Obtener el hotel actualizado (usar función interna para obtener incluso si está inactivo)
+    const updatedHotel = await getHotelByIdInternal(hotelData.id_hotel);
     if (!updatedHotel) {
       throw new Error('Error al actualizar el hotel');
     }
@@ -214,8 +250,8 @@ export const updateHotel = async (hotelData: UpdateHotelRequest): Promise<Hotel>
 // Eliminar hotel (soft delete)
 export const deleteHotel = async (id: number): Promise<void> => {
   try {
-    // Verificar que el hotel existe
-    const existingHotel = await getHotelById(id);
+    // Verificar que el hotel existe (usar función interna)
+    const existingHotel = await getHotelByIdInternal(id);
     if (!existingHotel) {
       throw new Error('Hotel no encontrado');
     }
@@ -284,6 +320,31 @@ export const searchHotels = async (searchTerm: string): Promise<Hotel[]> => {
     return await executeQuery<Hotel>(query, [searchPattern, searchPattern]);
   } catch (error) {
     console.error('Error buscando hoteles:', error);
+    throw new Error('Error interno del servidor');
+  }
+};
+
+// Obtener prendas disponibles para un hotel
+export const getHotelPrendasService = async (hotelId: number): Promise<any[]> => {
+  try {
+    const query = `
+      SELECT 
+        hp.id_hotel_prenda,
+        p.id_prenda,
+        p.nombre_prenda,
+        p.descripcion,
+        c.nombre_categoria,
+        hp.precio_unitario
+      FROM lv_hotel_prenda hp
+      INNER JOIN lv_prenda p ON hp.prenda_id = p.id_prenda
+      INNER JOIN lv_categoria c ON p.categoria_id = c.id_categoria
+      WHERE hp.hotel_id = ? AND hp.estado = 1
+      ORDER BY c.nombre_categoria ASC, p.nombre_prenda ASC
+    `;
+    
+    return await executeQuery(query, [hotelId]);
+  } catch (error) {
+    console.error('Error obteniendo prendas del hotel:', error);
     throw new Error('Error interno del servidor');
   }
 };

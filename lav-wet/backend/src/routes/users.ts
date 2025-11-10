@@ -5,11 +5,12 @@ import {
   createNewUser, 
   updateExistingUser, 
   removeUser,
-  getUserProfiles 
+  getUserProfiles,
+  getChoferes
 } from '../controllers/userController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/authorization.js';
-import { validateCreateUser } from '../middleware/validation.js';
+import { validateCreateUser, validateUpdateUser } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -18,6 +19,9 @@ router.use(authenticateToken);
 
 // GET /api/usuarios/perfiles - Obtener perfiles disponibles
 router.get('/perfiles', getUserProfiles);
+
+// GET /api/usuarios/choferes - Obtener choferes disponibles
+router.get('/choferes', getChoferes);
 
 // GET /api/usuarios - Obtener todos los usuarios (con paginación y búsqueda)
 router.get('/', requireAdmin, getUsers);
@@ -29,7 +33,7 @@ router.get('/:id', requireAdmin, getUser);
 router.post('/', requireAdmin, validateCreateUser, createNewUser);
 
 // PUT /api/usuarios/:id - Actualizar usuario (solo administradores)
-router.put('/:id', requireAdmin, validateCreateUser, updateExistingUser);
+router.put('/:id', requireAdmin, validateUpdateUser, updateExistingUser);
 
 // DELETE /api/usuarios/:id - Eliminar usuario (solo administradores)
 router.delete('/:id', requireAdmin, removeUser);

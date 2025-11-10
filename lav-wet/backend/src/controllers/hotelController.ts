@@ -5,8 +5,11 @@ import {
     createHotel,
     updateHotel,
     deleteHotel,
-    searchHotels
+    searchHotels,
+    getHotelPrendasService
 } from '../services/hotelService.js';
+import prendas from '../routes/prendas.js';
+import prendas from '../routes/prendas.js';
 
 // Obtener todos los hoteles
 export const getHotels = async (req: Request, res: Response): Promise<void> => {
@@ -212,6 +215,41 @@ export const removeHotel = async (req: Request, res: Response): Promise<void> =>
             error: {
                 message: error.message || 'Error interno del servidor',
                 code: errorCode
+            }
+        });
+    }
+};
+
+// Obtener prendas disponibles para un hotel
+export const getHotelPrendas = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id);
+
+        if (isNaN(id)) {
+            res.status(400).json({
+                success: false,
+                error: {
+                    message: 'ID de hotel inválido',
+                    code: 'INVALID_ID'
+                }
+            });
+            return;
+        }
+
+        const prendas = await getHotelPrendasService(id);
+
+        res.json({
+            success: true,
+            data: prendas
+        });
+    } catch (error: any) {
+        console.error('Error obteniendo prendas del hotel:', error);
+
+        res.status(500).json({
+            success: false,
+            error: {
+                message: error.message || 'Error interno del servidor',
+                code: 'INTERNAL_ERROR'
             }
         });
     }

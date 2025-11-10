@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Prenda } from '../../types';
 import PrendasList from './PrendasList.tsx';
 import PrendaForm from './PrendaForm.tsx';
-import { getAllPrendas, createPrenda, updatePrenda, deletePrenda } from '../../services/prendaService';
+import { getAllPrendas, createPrenda, updatePrenda } from '../../services/prendaService';
 
 const PrendasPage: React.FC = () => {
   const [prendas, setPrendas] = useState<Prenda[]>([]);
@@ -75,17 +75,6 @@ const PrendasPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await deletePrenda(id);
-      // Si estamos en la última página y solo queda un elemento, ir a la página anterior
-      const newPage = prendas.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
-      await loadPrendas(newPage); // Recargar la lista
-    } catch (err: any) {
-      setError(err.message || 'Error al eliminar prenda');
-    }
-  };
-
   const handlePageChange = (page: number) => {
     loadPrendas(page);
   };
@@ -105,7 +94,6 @@ const PrendasPage: React.FC = () => {
             error={error}
             onAdd={handleAdd}
             onEdit={handleEdit}
-            onDelete={handleDelete}
             onRefresh={() => loadPrendas(currentPage)}
             currentPage={currentPage}
             totalPages={totalPages}

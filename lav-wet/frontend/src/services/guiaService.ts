@@ -60,12 +60,36 @@ export const getNextGuiaNumber = async (hotelId: number): Promise<number> => {
 
 // Obtener choferes disponibles
 export const getChoferes = async (): Promise<any[]> => {
-  const response = await api.get('/usuarios/choferes');
-  return response.data.data || response.data;
+  try {
+    const response = await api.get('/usuarios/choferes');
+    console.log('🚛 Respuesta choferes:', response.data);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error('❌ Error cargando choferes:', error);
+    return [];
+  }
 };
 
 // Obtener prendas disponibles para un hotel
 export const getPrendasByHotel = async (hotelId: number): Promise<any[]> => {
-  const response = await api.get(`/hoteles/${hotelId}/prendas`);
-  return response.data.data || response.data;
+  try {
+    const response = await api.get(`/guias/hotel/${hotelId}/prendas`);
+    console.log('👕 Respuesta prendas del hotel', hotelId, ':', response.data);
+    if (response.data.success && response.data.data) {
+      const prendas = response.data.data;
+      console.log('👕 Prendas procesadas:', prendas);
+      // Asegurar que precio_unitario sea número
+      return prendas.map((p: any) => ({
+        ...p,
+        precio_unitario: parseFloat(p.precio_unitario || 0)
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('❌ Error cargando prendas del hotel:', error);
+    return [];
+  }
 };

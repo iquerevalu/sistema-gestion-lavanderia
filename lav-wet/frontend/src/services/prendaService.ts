@@ -20,13 +20,14 @@ export interface PrendasResponse {
 
 // Obtener todas las prendas
 export const getAllPrendas = async (page: number = 1, limit: number = 10): Promise<PrendasResponse> => {
-  console.log('🔍 getAllPrendas llamado con:', { page, limit });
-  
-  // Por ahora usamos datos simulados directamente
-  // try {
-  //   const response = await api.get(`/prendas?page=${page}&limit=${limit}`);
-  //   return response.data.data || response.data;
-  // } catch (error) {
+  try {
+    const response = await api.get(`/prendas?page=${page}&limit=${limit}`);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error('Formato de respuesta inválido');
+  } catch (error) {
+    console.error('Error cargando prendas, usando datos simulados:', error);
     // Datos ficticios para demostración
     const prendasEstaticas: Prenda[] = [
       {
@@ -365,9 +366,8 @@ export const getAllPrendas = async (page: number = 1, limit: number = 10): Promi
       totalPages: totalPages
     };
     
-    console.log('✅ getAllPrendas resultado:', resultado);
     return resultado;
-  // }
+  }
 };
 
 // Obtener prenda por ID
@@ -443,26 +443,20 @@ export const updatePrenda = async (prendaData: UpdatePrendaRequest): Promise<Pre
 
 // Eliminar prenda
 export const deletePrenda = async (id: number): Promise<void> => {
-  try {
-    await api.delete(`/prendas/${id}`);
-  } catch (error) {
-    // Simular eliminación exitosa
-    console.log('Simulando eliminación de prenda ID:', id);
-    
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Simular éxito (no retorna nada)
-    return;
-  }
+  const response = await api.delete(`/prendas/${id}`);
+  return response.data;
 };
 
 // Obtener categorías disponibles
 export const getCategorias = async (): Promise<Categoria[]> => {
   try {
-    const response = await api.get('/categorias');
-    return response.data.data || response.data;
+    const response = await api.get('/prendas/categorias');
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return [];
   } catch (error) {
+    console.error('Error cargando categorías, usando datos simulados:', error);
     // Datos ficticios de categorías para demostración
     const categoriasEstaticas: Categoria[] = [
       {
@@ -514,7 +508,7 @@ export const getCategorias = async (): Promise<Categoria[]> => {
 // Crear nueva categoría
 export const createCategoria = async (nombre: string, descripcion?: string): Promise<Categoria> => {
   try {
-    const response = await api.post('/categorias', { nombre_categoria: nombre, descripcion });
+    const response = await api.post('/prendas/categorias', { nombre_categoria: nombre, descripcion });
     return response.data.data || response.data;
   } catch (error) {
     // Simular creación de categoría

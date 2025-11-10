@@ -20,10 +20,10 @@ export const handler = async (
     }
 
     // Procesar la request a través de serverless-express
-    const result = await serverlessHandler(event, context);
+    const result = await serverlessHandler(event, context, () => {});
 
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Lambda Handler Error:', error);
 
     return {

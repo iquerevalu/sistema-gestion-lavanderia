@@ -21,9 +21,12 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
   const [error, setError] = useState('');
   const [perfiles, setPerfiles] = useState<any[]>([]);
   const [hoteles, setHoteles] = useState<any[]>([]);
+  const [filteredHoteles, setFilteredHoteles] = useState<any[]>([]);
+  const [hotelSearch, setHotelSearch] = useState('');
+  const [showHotelDropdown, setShowHotelDropdown] = useState(false);
+  const [selectedPerfil, setSelectedPerfil] = useState<any>(null);
 
   useEffect(() => {
-    // Cargar perfiles y hoteles
     const loadData = async () => {
       try {
         const [perfilesData, hotelesData] = await Promise.all([
@@ -32,14 +35,16 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
         ]);
         setPerfiles(perfilesData);
         setHoteles(hotelesData);
+        setFilteredHoteles(hotelesData);
       } catch (err) {
         console.error('Error cargando datos:', err);
       }
     };
     
     loadData();
+  }, []);
 
-    // Llenar formulario si es edición
+  useEffect(() => {
     if (usuario) {
       setFormData({
         nombre_completo: usuario.nombre_completo || '',
@@ -47,10 +52,34 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
         telefono: usuario.telefono || '',
         perfil_id: usuario.perfil_id?.toString() || '',
         hotel_id: usuario.hotel_id?.toString() || '',
-        password: '' // No mostrar password existente
+        password: ''
       });
+      
+      if (usuario.hotel_id && usuario.nombre_comercial) {
+        setHotelSearch(usuario.nombre_comercial);
+      }
     }
   }, [usuario]);
+
+  useEffect(() => {
+    if (formData.perfil_id && perfiles.length > 0) {
+      const perfil = perfiles.find(p => p.id_perfil === parseInt(formData.perfil_id));
+      setSelectedPerfil(perfil);
+    }
+  }, [formData.perfil_id, perfiles]);
+
+  // Filtrar hoteles cuando cambia la búsqueda
+  useEffect(() => {
+    if (hotelSearch.trim() === '') {
+      setFilteredHoteles(hoteles);
+    } else {
+      const filtered = hoteles.filter(hotel =>
+        hotel.nombre_comercial?.toLowerCase().includes(hotelSearch.toLowerCase()) ||
+        hotel.razon_social?.toLowerCase().includes(hotelSearch.toLowerCase())
+      );
+      setFilteredHoteles(filtered);
+    }
+  }, [hotelSearch, hoteles]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -58,6 +87,56 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
       ...prev,
       [name]: value
     }));
+
+    // Si cambia el perfil, actualizar el perfil seleccionado
+    if (name === 'perfil_id') {
+      const perfil = perfiles.find(p => p.id_perfil === parseInt(value));
+      setSelectedPerfil(perfil);
+      
+      // Si el perfil no requiere hotel o está bloqueado, limpiar la selección
+      if (perfil && (!requiresHotel(perfil.nombre_perfil) || isHotelBlocked(perfil.nombre_perfil))) {
+        setFormData(prev => ({ ...prev, hotel_id: '' }));
+        setHotelSearch('');
+      }
+    }
+  };
+
+  // Función para obtener el perfil actual
+  const getCurrentPerfil = () => {
+    if (selectedPerfil) return selectedPerfil;
+    if (formData.perfil_id) {
+      return perfiles.find(p => p.id_perfil === parseInt(formData.perfil_id));
+    }
+    return null;
+  };
+
+  // Función para determinar si un perfil requiere hotel
+  const requiresHotel = (nombrePerfil: string): boolean => {
+    return ['Operador', 'Supervisor'].includes(nombrePerfil);
+  };
+
+  // Función para determinar si un perfil NO debe tener hotel (bloqueado)
+  const isHotelBlocked = (nombrePerfil: string): boolean => {
+    return ['Administrador', 'Chofer', 'Operario Lavandería'].includes(nombrePerfil);
+  };
+
+  // Manejar búsqueda de hotel
+  const handleHotelSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setHotelSearch(value);
+    setShowHotelDropdown(true);
+    
+    // Si se borra el texto, limpiar la selección
+    if (value === '') {
+      setFormData(prev => ({ ...prev, hotel_id: '' }));
+    }
+  };
+
+  // Seleccionar hotel del dropdown
+  const selectHotel = (hotel: any) => {
+    setFormData(prev => ({ ...prev, hotel_id: hotel.id_hotel.toString() }));
+    setHotelSearch(hotel.nombre_comercial);
+    setShowHotelDropdown(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,16 +152,24 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
       };
       
       // Si es edición y no se cambió la contraseña, no enviarla
-      if (usuario && !formData.password) {
+      if (usuario && (!formData.password || formData.password.trim() === '')) {
         const { password, ...dataWithoutPassword } = submitData;
         await onSave(dataWithoutPassword);
-        return;
+      } else {
+        await onSave(submitData);
       }
-      
-      
-      await onSave(submitData);
     } catch (err: any) {
-      setError(err.message || 'Error al guardar el usuario');
+      console.error('❌ Error en formulario:', err);
+      
+      // Manejar errores de validación específicos
+      if (err.response?.status === 400 && err.response?.data?.error?.details) {
+        const validationErrors = err.response.data.error.details
+          .map((detail: any) => `${detail.field}: ${detail.message}`)
+          .join(', ');
+        setError(`Errores de validación: ${validationErrors}`);
+      } else {
+        setError(err.message || err.response?.data?.error?.message || 'Error al guardar el usuario');
+      }
     } finally {
       setLoading(false);
     }
@@ -199,25 +286,61 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({ usuario, onSave, onCancel }) 
                 </select>
               </div>
 
-              {/* Hotel */}
-              <div>
-                <label htmlFor="hotel_id" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Hotel (Opcional)
+              {/* Hotel - Autocompletable */}
+              <div className="relative">
+                <label htmlFor="hotel_search" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Hotel {getCurrentPerfil() && requiresHotel(getCurrentPerfil()?.nombre_perfil || '') ? '*' : '(Opcional)'}
                 </label>
-                <select
-                  id="hotel_id"
-                  name="hotel_id"
-                  value={formData.hotel_id}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-gray-50 hover:bg-white"
-                >
-                  <option value="">Sin hotel asignado</option>
-                  {hoteles.map((hotel) => (
-                    <option key={hotel.id_hotel} value={hotel.id_hotel}>
-                      {hotel.nombre_comercial}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="hotel_search"
+                    value={hotelSearch}
+                    onChange={handleHotelSearch}
+                    onFocus={() => setShowHotelDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowHotelDropdown(false), 200)}
+                    required={getCurrentPerfil() && requiresHotel(getCurrentPerfil()?.nombre_perfil || '')}
+                    disabled={getCurrentPerfil() && isHotelBlocked(getCurrentPerfil()?.nombre_perfil || '')}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      getCurrentPerfil() && isHotelBlocked(getCurrentPerfil()?.nombre_perfil || '')
+                        ? 'bg-gray-100 border-gray-200 cursor-not-allowed'
+                        : 'border-gray-200 bg-gray-50 hover:bg-white'
+                    }`}
+                    placeholder={
+                      getCurrentPerfil() && isHotelBlocked(getCurrentPerfil()?.nombre_perfil || '')
+                        ? 'No puede tener hotel asignado'
+                        : 'Buscar hotel...'
+                    }
+                  />
+                  
+                  {/* Dropdown de hoteles */}
+                  {showHotelDropdown && hotelSearch && filteredHoteles.length > 0 && !isHotelBlocked(getCurrentPerfil()?.nombre_perfil || '') && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredHoteles.map((hotel) => (
+                        <div
+                          key={hotel.id_hotel}
+                          onClick={() => selectHotel(hotel)}
+                          className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="font-semibold text-gray-900">{hotel.nombre_comercial}</div>
+                          <div className="text-sm text-gray-600">{hotel.razon_social}</div>
+                          {hotel.ruc && (
+                            <div className="text-xs text-gray-500">RUC: {hotel.ruc}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Mensaje cuando no hay resultados */}
+                  {showHotelDropdown && hotelSearch && filteredHoteles.length === 0 && !isHotelBlocked(getCurrentPerfil()?.nombre_perfil || '') && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                      No se encontraron hoteles
+                    </div>
+                  )}
+                </div>
+                
+
               </div>
             </div>
 

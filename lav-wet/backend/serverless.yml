@@ -54,7 +54,7 @@ provider:
 functions:
   # Función principal de la API
   api:
-    handler: dist/server.handler
+    handler: dist/lambda.handler
     description: 'API principal del sistema de gestión de guías de lavandería'
     events:
       - http:

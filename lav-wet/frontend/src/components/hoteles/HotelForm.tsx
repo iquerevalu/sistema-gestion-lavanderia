@@ -14,7 +14,8 @@ const HotelForm: React.FC<HotelFormProps> = ({ hotel, onSave, onCancel }) => {
     nombre_comercial: '',
     direccion: '',
     telefono: '',
-    correo_contacto: ''
+    correo_contacto: '',
+    estado: 1
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,16 +28,17 @@ const HotelForm: React.FC<HotelFormProps> = ({ hotel, onSave, onCancel }) => {
         nombre_comercial: hotel.nombre_comercial || '',
         direccion: hotel.direccion || '',
         telefono: hotel.telefono || '',
-        correo_contacto: hotel.correo_contacto || ''
+        correo_contacto: hotel.correo_contacto || '',
+        estado: hotel.estado || 1
       });
     }
   }, [hotel]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'estado' ? parseInt(value) : value
     }));
   };
 
@@ -193,6 +195,37 @@ const HotelForm: React.FC<HotelFormProps> = ({ hotel, onSave, onCancel }) => {
                   placeholder="contacto@hotel.com"
                 />
               </div>
+
+              {/* Estado - Solo mostrar en edición */}
+              {hotel && (
+                <div>
+                  <label htmlFor="estado" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Estado *
+                  </label>
+                  <select
+                    id="estado"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-gray-50 hover:bg-white"
+                  >
+                    <option value={1}>
+                      ✅ Activo
+                    </option>
+                    <option value={0}>
+                      ❌ Inactivo
+                    </option>
+                  </select>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {formData.estado === 1 ? (
+                      <span className="text-green-600">✓ El hotel aparecerá en las listas y podrá ser usado</span>
+                    ) : (
+                      <span className="text-red-600">⚠ El hotel estará oculto y no podrá ser usado</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Buttons */}

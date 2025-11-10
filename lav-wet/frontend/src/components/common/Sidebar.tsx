@@ -37,6 +37,10 @@ const Sidebar: React.FC = () => {
   const getNavigationItems = () => {
     const items = [];
 
+    // Debug: mostrar información del usuario
+    console.log('👤 Usuario actual:', user);
+    console.log('🔑 Perfil del usuario:', user.nombre_perfil);
+
     // Dashboard siempre visible
     items.push({
       type: 'single',

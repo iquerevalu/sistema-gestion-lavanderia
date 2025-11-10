@@ -1,0 +1,52 @@
+service: lavanderia-frontend
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  timeout: 30
+
+functions:
+  frontend:
+    handler: dist/server.handler
+    description: 'Frontend del sistema de gestión de guías de lavandería'
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /
+          method: ANY
+          cors: true
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    host: 0.0.0.0
+
+package:
+  patterns:
+    - 'dist/**'
+    - '!.git/**'
+    - '!.gitignore'
+    - '!README.md'
+    - '!src/**'
+    - '!public/**'
+    - '!node_modules/**'
+    - '!*.test.js'
+    - '!coverage/**'
+    - '!.nyc_output/**'
+    - '!**/*.map'
+    - '!**/*.ts'
+    - '!**/*.tsx'
+    - '!tsconfig.json'
+    - '!vite.config.ts'
+    - '!.env*'

@@ -7,7 +7,9 @@ import {
 
 interface PrendaDetalle {
   prenda_id: number;
+  id_hotel_prenda: number;
   nombre_prenda: string;
+  precio_unitario: number;
   cantidad_sucia: number;
   es_devuelta: boolean;
 }
@@ -52,94 +54,79 @@ const GuiaForm: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      // Datos estáticos para demostración
-      const hotelesEstaticos = [
-        { id_hotel: 1, nombre_comercial: 'Hotel Plaza', razon_social: 'Hotel Plaza SAC' },
-        { id_hotel: 2, nombre_comercial: 'Hotel Ejecutivo', razon_social: 'Hotel Ejecutivo EIRL' },
-        { id_hotel: 3, nombre_comercial: 'Hotel Boutique', razon_social: 'Boutique Hotels SA' }
-      ];
-
-      const choferesEstaticos = [
-        { id_usuario: 10, nombre_completo: 'Carlos Mendoza' },
-        { id_usuario: 11, nombre_completo: 'Luis Rodriguez' },
-        { id_usuario: 12, nombre_completo: 'Miguel Torres' }
-      ];
-
-      setHoteles(hotelesEstaticos);
-      setChoferes(choferesEstaticos);
+      console.log('🔄 Cargando datos iniciales para guías...');
+      console.log('👤 Usuario actual:', user);
+      console.log('🏨 Hotel del usuario:', user?.hotel_id);
       
-      // Si el usuario es recepcionista, pre-seleccionar su hotel
+      // Importar servicios necesarios
+      const { getHotelesForUsers } = await import('../../services/userService');
+      const { getChoferes } = await import('../../services/guiaService');
+      
+      // Cargar hoteles y choferes desde la BD
+      const [hotelesData, choferesData] = await Promise.all([
+        getHotelesForUsers(),
+        getChoferes()
+      ]);
+      
+      console.log('🏨 Hoteles cargados:', hotelesData);
+      console.log('🚛 Choferes cargados:', choferesData);
+      
+      setHoteles(hotelesData);
+      setChoferes(choferesData);
+      
+      // Determinar qué hotel pre-seleccionar
+      let hotelIdToSelect = '';
+      
       if (user?.hotel_id) {
-        setFormData(prev => ({
-          ...prev,
-          hotel_id: user.hotel_id?.toString() || ''
-        }));
-      } else {
+        // Si el usuario es recepcionista, pre-seleccionar su hotel
+        hotelIdToSelect = user.hotel_id.toString();
+        console.log('✅ Pre-seleccionando hotel del recepcionista:', hotelIdToSelect);
+      } else if (hotelesData.length > 0) {
         // Para administrador, pre-seleccionar el primer hotel
+        hotelIdToSelect = hotelesData[0].id_hotel?.toString() || '';
+        console.log('✅ Pre-seleccionando primer hotel para admin:', hotelIdToSelect);
+      }
+      
+      if (hotelIdToSelect) {
         setFormData(prev => ({
           ...prev,
-          hotel_id: '1'
+          hotel_id: hotelIdToSelect
         }));
+        console.log('✅ Hotel establecido en formData:', hotelIdToSelect);
       }
     } catch (err) {
-      console.error('Error cargando datos iniciales:', err);
+      console.error('❌ Error cargando datos iniciales:', err);
       setError('Error al cargar los datos iniciales');
     }
   };
 
   const loadPrendasByHotel = async () => {
     try {
-      // Datos estáticos de prendas para demostración
-      const prendasEstaticas = [
-        // Ropa de Cama
-        { id_prenda: 1, nombre_prenda: 'Sábana Individual', categoria: 'Ropa de Cama', precio_unitario: 5.00 },
-        { id_prenda: 2, nombre_prenda: 'Sábana Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 8.00 },
-        { id_prenda: 3, nombre_prenda: 'Sábana King Size', categoria: 'Ropa de Cama', precio_unitario: 12.00 },
-        { id_prenda: 4, nombre_prenda: 'Funda de Almohada', categoria: 'Ropa de Cama', precio_unitario: 2.50 },
-        { id_prenda: 5, nombre_prenda: 'Funda de Almohada King', categoria: 'Ropa de Cama', precio_unitario: 3.00 },
-        { id_prenda: 6, nombre_prenda: 'Cobertor Individual', categoria: 'Ropa de Cama', precio_unitario: 12.00 },
-        { id_prenda: 7, nombre_prenda: 'Cobertor Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 15.00 },
-        { id_prenda: 8, nombre_prenda: 'Cobertor King Size', categoria: 'Ropa de Cama', precio_unitario: 18.00 },
-        { id_prenda: 9, nombre_prenda: 'Protector de Colchón Individual', categoria: 'Ropa de Cama', precio_unitario: 10.00 },
-        { id_prenda: 10, nombre_prenda: 'Protector de Colchón Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 12.00 },
-        { id_prenda: 11, nombre_prenda: 'Protector de Colchón King', categoria: 'Ropa de Cama', precio_unitario: 15.00 },
-        { id_prenda: 12, nombre_prenda: 'Edredón Individual', categoria: 'Ropa de Cama', precio_unitario: 18.00 },
-        { id_prenda: 13, nombre_prenda: 'Edredón Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 25.00 },
-        { id_prenda: 14, nombre_prenda: 'Edredón King Size', categoria: 'Ropa de Cama', precio_unitario: 30.00 },
-        { id_prenda: 15, nombre_prenda: 'Cubrecama Individual', categoria: 'Ropa de Cama', precio_unitario: 15.00 },
-        { id_prenda: 16, nombre_prenda: 'Cubrecama Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 20.00 },
-        
-        // Toallas
-        { id_prenda: 17, nombre_prenda: 'Toalla de Baño', categoria: 'Toallas', precio_unitario: 6.00 },
-        { id_prenda: 18, nombre_prenda: 'Toalla de Mano', categoria: 'Toallas', precio_unitario: 3.50 },
-        { id_prenda: 19, nombre_prenda: 'Toalla de Piso', categoria: 'Toallas', precio_unitario: 4.00 },
-        { id_prenda: 20, nombre_prenda: 'Toalla de Playa', categoria: 'Toallas', precio_unitario: 8.00 },
-        { id_prenda: 21, nombre_prenda: 'Toallón', categoria: 'Toallas', precio_unitario: 10.00 },
-        
-        // Cortinas
-        { id_prenda: 22, nombre_prenda: 'Cortina de Baño', categoria: 'Cortinas', precio_unitario: 12.00 },
-        { id_prenda: 23, nombre_prenda: 'Cortina Blackout', categoria: 'Cortinas', precio_unitario: 20.00 },
-        { id_prenda: 24, nombre_prenda: 'Cortina Decorativa', categoria: 'Cortinas', precio_unitario: 15.00 },
-        
-        // Mantelería
-        { id_prenda: 25, nombre_prenda: 'Mantel Individual', categoria: 'Mantelería', precio_unitario: 4.00 },
-        { id_prenda: 26, nombre_prenda: 'Mantel para 4 personas', categoria: 'Mantelería', precio_unitario: 8.00 },
-        { id_prenda: 27, nombre_prenda: 'Mantel para 6 personas', categoria: 'Mantelería', precio_unitario: 12.00 },
-        { id_prenda: 28, nombre_prenda: 'Servilleta de Tela', categoria: 'Mantelería', precio_unitario: 1.50 },
-        
-        // Uniformes
-        { id_prenda: 29, nombre_prenda: 'Uniforme de Recepción', categoria: 'Uniformes', precio_unitario: 15.00 },
-        { id_prenda: 30, nombre_prenda: 'Uniforme de Limpieza', categoria: 'Uniformes', precio_unitario: 12.00 },
-        { id_prenda: 31, nombre_prenda: 'Uniforme de Cocina', categoria: 'Uniformes', precio_unitario: 18.00 },
-        { id_prenda: 32, nombre_prenda: 'Delantal', categoria: 'Uniformes', precio_unitario: 8.00 }
-      ];
+      if (!formData.hotel_id) return;
       
-      setPrendas(prendasEstaticas);
-      setFilteredPrendas(prendasEstaticas);
+      console.log('🔄 Cargando prendas para hotel:', formData.hotel_id);
+      
+      const { getPrendasByHotel } = await import('../../services/guiaService');
+      const prendasData = await getPrendasByHotel(parseInt(formData.hotel_id));
+      
+      console.log('👕 Prendas cargadas:', prendasData);
+      
+      setPrendas(prendasData);
+      setFilteredPrendas(prendasData);
       // Limpiar detalle de prendas al cambiar hotel
       setPrendasDetalle([]);
     } catch (err) {
-      console.error('Error cargando prendas:', err);
+      console.error('❌ Error cargando prendas:', err);
+      // Si hay error, usar datos de fallback básicos
+      const prendasFallback = [
+        { id_prenda: 1, nombre_prenda: 'Sábana Individual', categoria: 'Ropa de Cama', precio_unitario: 5.00 },
+        { id_prenda: 2, nombre_prenda: 'Sábana Matrimonial', categoria: 'Ropa de Cama', precio_unitario: 8.00 },
+        { id_prenda: 3, nombre_prenda: 'Toalla de Baño', categoria: 'Toallas', precio_unitario: 6.00 },
+        { id_prenda: 4, nombre_prenda: 'Toalla de Mano', categoria: 'Toallas', precio_unitario: 3.50 }
+      ];
+      setPrendas(prendasFallback);
+      setFilteredPrendas(prendasFallback);
+      setPrendasDetalle([]);
     }
   };
 
@@ -161,19 +148,32 @@ const GuiaForm: React.FC = () => {
   };
 
   const agregarPrenda = () => {
+    console.log('➕ Intentando agregar prenda...');
+    console.log('📦 Prendas disponibles:', prendas.length);
+    console.log('🏨 Hotel seleccionado:', formData.hotel_id);
+    
+    if (!formData.hotel_id) {
+      setError('Por favor selecciona un hotel primero');
+      return;
+    }
+    
     if (prendas.length === 0) {
-      setError('Selecciona un hotel primero para cargar las prendas disponibles');
+      setError('No hay prendas configuradas para este hotel. Por favor espera a que se carguen o contacta al administrador.');
       return;
     }
     
     const nuevaPrenda: PrendaDetalle = {
       prenda_id: 0,
+      id_hotel_prenda: 0,
       nombre_prenda: '',
+      precio_unitario: 0,
       cantidad_sucia: 1,
       es_devuelta: false
     };
     
+    console.log('✅ Agregando nueva prenda al detalle');
     setPrendasDetalle(prev => [...prev, nuevaPrenda]);
+    setError(''); // Limpiar error
   };
 
   const actualizarPrenda = (index: number, campo: keyof PrendaDetalle, valor: any) => {
@@ -202,6 +202,14 @@ const GuiaForm: React.FC = () => {
     setPrendasDetalle(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Función para normalizar texto (quitar acentos y convertir a minúsculas)
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // Elimina los acentos
+  };
+
   const handlePrendaSearch = (index: number, searchValue: string) => {
     // Actualizar el valor de búsqueda en la prenda
     setPrendasDetalle(prev => {
@@ -220,11 +228,14 @@ const GuiaForm: React.FC = () => {
       [index]: searchValue.trim().length > 0
     }));
 
-    // Filtrar prendas basado en la búsqueda
+    // Filtrar prendas basado en la búsqueda (ignorando acentos)
     if (searchValue.trim()) {
-      const filtered = prendas.filter(p => 
-        p.nombre_prenda.toLowerCase().includes(searchValue.toLowerCase())
-      );
+      const normalizedSearch = normalizeText(searchValue);
+      const filtered = prendas.filter(p => {
+        const normalizedName = normalizeText(p.nombre_prenda);
+        const normalizedCategory = normalizeText(p.nombre_categoria || p.categoria || '');
+        return normalizedName.includes(normalizedSearch) || normalizedCategory.includes(normalizedSearch);
+      });
       setFilteredPrendas(filtered);
     } else {
       setFilteredPrendas(prendas);
@@ -236,8 +247,10 @@ const GuiaForm: React.FC = () => {
       const nuevasPrendas = [...prev];
       nuevasPrendas[index] = {
         ...nuevasPrendas[index],
-        prenda_id: prendaSeleccionada.id_prenda,
-        nombre_prenda: prendaSeleccionada.nombre_prenda
+        prenda_id: prendaSeleccionada.prenda_id || prendaSeleccionada.id_prenda,
+        id_hotel_prenda: prendaSeleccionada.id_hotel_prenda,
+        nombre_prenda: prendaSeleccionada.nombre_prenda,
+        precio_unitario: parseFloat(prendaSeleccionada.precio_unitario || 0)
       };
       return nuevasPrendas;
     });
@@ -287,7 +300,7 @@ const GuiaForm: React.FC = () => {
 
       // Validar que todas las prendas tengan datos válidos
       const prendasInvalidas = prendasDetalle.some(p => 
-        !p.prenda_id || p.cantidad_sucia <= 0
+        !p.prenda_id || !p.id_hotel_prenda || p.cantidad_sucia <= 0
       );
       
       if (prendasInvalidas) {
@@ -301,11 +314,13 @@ const GuiaForm: React.FC = () => {
         chofer_recojo_id: parseInt(formData.chofer_recojo_id),
         observaciones: formData.observaciones,
         prendas: prendasDetalle.map(p => ({
-          prenda_id: p.prenda_id,
+          hotel_prenda_id: p.id_hotel_prenda, // Usar id_hotel_prenda en lugar de prenda_id
           cantidad_sucia: p.cantidad_sucia,
           es_devuelta: p.es_devuelta
         }))
       };
+
+      console.log('📤 Enviando guía:', guiaData);
 
       await createGuia(guiaData);
       
@@ -504,124 +519,105 @@ const GuiaForm: React.FC = () => {
               <p className="text-sm">Haz clic en "Agregar Prenda" para comenzar</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {prendasDetalle.map((prenda, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    {/* Selección de Prenda con Autocompletado */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Prenda *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={prenda.nombre_prenda}
-                          onChange={(e) => handlePrendaSearch(index, e.target.value)}
-                          onFocus={() => handlePrendaFocus(index)}
-                          onBlur={() => handlePrendaBlur(index)}
-                          placeholder="Buscar prenda..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          autoComplete="off"
-                        />
-                        {/* Dropdown de sugerencias */}
-                        {showSuggestions[index] && prenda.nombre_prenda && prenda.prenda_id === 0 && (
-                          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-48 overflow-y-auto">
-                            {filteredPrendas
-                              .filter(p => p.nombre_prenda.toLowerCase().includes(prenda.nombre_prenda.toLowerCase()))
-                              .slice(0, 8)
-                              .map((p) => (
+            <div className="overflow-visible">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Prenda
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                      Cantidad
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                      Devolución
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {prendasDetalle.map((prenda, index) => (
+                    <tr key={index} className={prenda.es_devuelta ? 'bg-red-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {index + 1}
+                      </td>
+                      <td className="px-4 py-3" style={{ position: 'relative', overflow: 'visible' }}>
+                        <div className="relative" style={{ zIndex: 100 + prendasDetalle.length - index }}>
+                          <input
+                            type="text"
+                            value={prenda.nombre_prenda}
+                            onChange={(e) => handlePrendaSearch(index, e.target.value)}
+                            onFocus={() => handlePrendaFocus(index)}
+                            onBlur={() => handlePrendaBlur(index)}
+                            placeholder="Buscar prenda..."
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            autoComplete="off"
+                          />
+                          {/* Dropdown de sugerencias */}
+                          {showSuggestions[index] && prenda.nombre_prenda && prenda.prenda_id === 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-2xl max-h-60 overflow-y-auto left-0" style={{
+                              minWidth: '350px'
+                            }}>
+                              {filteredPrendas.slice(0, 8).map((p) => (
                                 <button
                                   key={p.id_prenda}
                                   type="button"
                                   onClick={() => seleccionarPrenda(index, p)}
-                                  className="w-full text-left px-4 py-3 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors duration-150"
+                                  className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors duration-150"
                                 >
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <div className="font-medium text-gray-900">{p.nombre_prenda}</div>
-                                      <div className="text-sm text-gray-500">{p.categoria}</div>
-                                    </div>
-                                    <div className="text-sm font-semibold text-green-600">
-                                      S/ {p.precio_unitario.toFixed(2)}
-                                    </div>
-                                  </div>
+                                  <div className="font-medium text-sm text-gray-900">{p.nombre_prenda}</div>
+                                  <div className="text-xs text-gray-500">{p.nombre_categoria || p.categoria}</div>
                                 </button>
-                              ))
-                            }
-                            {filteredPrendas.filter(p => p.nombre_prenda.toLowerCase().includes(prenda.nombre_prenda.toLowerCase())).length === 0 && (
-                              <div className="px-4 py-3 text-gray-500 text-center">
-                                No se encontraron prendas
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Cantidad */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cantidad *
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={prenda.cantidad_sucia}
-                        onChange={(e) => actualizarPrenda(index, 'cantidad_sucia', parseInt(e.target.value))}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    {/* Checkbox de Devuelta */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Devolución
-                      </label>
-                      <div className="flex items-center justify-center">
+                              ))}
+                              {filteredPrendas.length === 0 && (
+                                <div className="px-4 py-2 text-gray-500 text-center text-sm">
+                                  No se encontraron prendas
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <input
+                          type="number"
+                          min="1"
+                          value={prenda.cantidad_sucia}
+                          onChange={(e) => actualizarPrenda(index, 'cantidad_sucia', parseInt(e.target.value))}
+                          required
+                          className="w-20 px-2 py-2 text-sm text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <input
                           type="checkbox"
                           checked={prenda.es_devuelta}
                           onChange={(e) => actualizarPrenda(index, 'es_devuelta', e.target.checked)}
-                          className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                          title={prenda.es_devuelta ? "Prenda devuelta - No se procesará" : "Marcar como devolución"}
                         />
-                      </div>
-                    </div>
-
-                    {/* Botón Eliminar */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => eliminarPrenda(index)}
-                        className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 rounded-md font-medium transition-all duration-300"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Información adicional */}
-                  <div className="mt-3 flex justify-between items-center">
-                    <div className="text-sm text-gray-600">
-                      {prenda.es_devuelta ? (
-                        <span className="text-red-600 font-medium">
-                          ⚠️ Prenda devuelta - No se cobrará
-                        </span>
-                      ) : (
-                        <span>
-                          Precio unitario: S/ {prendas.find(p => p.id_prenda === prenda.prenda_id)?.precio_unitario || '0.00'}
-                        </span>
-                      )}
-                    </div>
-                    {!prenda.es_devuelta && (
-                      <div className="text-sm font-medium text-green-600">
-                        Total: S/ {((prendas.find(p => p.id_prenda === prenda.prenda_id)?.precio_unitario || 0) * prenda.cantidad_sucia).toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => eliminarPrenda(index)}
+                          className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                          title="Eliminar prenda"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

@@ -66,7 +66,7 @@ const UsuariosList: React.FC<UsuariosListProps> = ({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-lg p-6" style={{ 
+      <div className="bg-white rounded-xl shadow-lg p-6" style={{
         background: 'linear-gradient(135deg, #000080 0%, #1e40af 100%)',
         color: 'white'
       }}>
@@ -77,12 +77,11 @@ const UsuariosList: React.FC<UsuariosListProps> = ({
           </div>
           <button
             onClick={onAdd}
-            className="bg-white text-blue-900 hover:bg-blue-50 px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            style={{ 
-              background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
-              boxShadow: '0 4px 15px rgba(255, 255, 255, 0.3)'
-            }}
+            className="bg-white hover:bg-blue-50 text-blue-900 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
             Agregar Usuario
           </button>
         </div>
@@ -92,7 +91,7 @@ const UsuariosList: React.FC<UsuariosListProps> = ({
       <div className="bg-white shadow-xl overflow-hidden rounded-xl border border-slate-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
-            <thead style={{ 
+            <thead style={{
               background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
             }}>
               <tr>
@@ -118,10 +117,10 @@ const UsuariosList: React.FC<UsuariosListProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
               {usuariosArray.map((usuario, index) => (
-                <tr 
-                  key={usuario.id_usuario} 
+                <tr
+                  key={usuario.id_usuario}
                   className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300"
-                  style={{ 
+                  style={{
                     backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc'
                   }}
                 >
@@ -157,29 +156,34 @@ const UsuariosList: React.FC<UsuariosListProps> = ({
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
-                        usuario.estado === 1
-                          ? 'bg-gradient-to-r from-green-400 to-green-500 text-white'
-                          : 'bg-gradient-to-r from-red-400 to-red-500 text-white'
-                      }`}
+                      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${usuario.estado === 1
+                        ? 'bg-gradient-to-r from-green-400 to-green-500 text-white'
+                        : 'bg-gradient-to-r from-red-400 to-red-500 text-white'
+                        }`}
                     >
 
                       {usuario.estado === 1 ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => onEdit(usuario)}
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        className="text-gray-400 hover:text-blue-600 transition-colors duration-200 p-1.5 hover:bg-blue-50 rounded-md"
+                        title="Editar usuario"
                       >
-                        Editar
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                       </button>
                       <button
                         onClick={() => handleDelete(usuario.id_usuario, usuario.nombre_completo)}
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        className="text-gray-400 hover:text-red-600 transition-colors duration-200 p-1.5 hover:bg-red-50 rounded-md"
+                        title="Eliminar usuario"
                       >
-                        Eliminar
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </td>

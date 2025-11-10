@@ -6,7 +6,8 @@ import {
   updateUser, 
   deleteUser, 
   searchUsers,
-  getProfiles 
+  getProfiles,
+  getChoferesAvailable
 } from '../services/userService.js';
 
 // Obtener todos los usuarios
@@ -253,6 +254,28 @@ export const getUserProfiles = async (req: Request, res: Response): Promise<void
     });
   } catch (error: any) {
     console.error('Error obteniendo perfiles:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message || 'Error interno del servidor',
+        code: 'INTERNAL_ERROR'
+      }
+    });
+  }
+};
+
+// Obtener choferes disponibles
+export const getChoferes = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const choferes = await getChoferesAvailable();
+    
+    res.json({
+      success: true,
+      data: choferes
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo choferes:', error);
     
     res.status(500).json({
       success: false,
