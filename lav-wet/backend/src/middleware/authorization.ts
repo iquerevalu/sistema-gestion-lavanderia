@@ -162,14 +162,17 @@ export const requireAdmin = requireRole([Perfiles.ADMINISTRADOR]);
 // Solo recepcionistas y administradores pueden crear guías
 export const requireRecepcionista = requireRole([Perfiles.RECEPCIONISTA, Perfiles.ADMINISTRADOR]);
 
-// Solo operarios pueden procesar cantidades
-export const requireOperario = requireRole([Perfiles.OPERARIO]);
+// Solo operarios y administradores pueden procesar cantidades
+export const requireOperario = requireRole([Perfiles.OPERARIO, Perfiles.ADMINISTRADOR]);
 
 // Solo encargados pueden ver tracking (además de admin)
 export const requireEncargadoOrAdmin = requireRole([Perfiles.ENCARGADO, Perfiles.ADMINISTRADOR]);
 
 // Operarios y administradores pueden cambiar estados
 export const requireOperarioOrAdmin = requireRole([Perfiles.OPERARIO, Perfiles.ADMINISTRADOR]);
+
+// Solo choferes y administradores pueden entregar guías
+export const requireChoferOrAdmin = requireRole([Perfiles.CHOFER, Perfiles.ADMINISTRADOR]);
 
 // Extender la interfaz Request para incluir hotelFilter
 declare global {

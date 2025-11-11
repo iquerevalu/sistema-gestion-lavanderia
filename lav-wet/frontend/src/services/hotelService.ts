@@ -26,11 +26,8 @@ export const getAllHoteles = async (
   page: number = 1,
   limit: number = 10
 ): Promise<HotelesResponse> => {
-  console.log('🏨 Cargando hoteles de la BD - página:', page);
-  
   try {
     const response = await api.get(`/hoteles?page=${page}&limit=${limit}`);
-    console.log('📦 Respuesta de la BD:', response.data);
     
     // El backend devuelve { success: true, data: { hotels, total, page, totalPages } }
     if (response.data.success && response.data.data) {
@@ -202,7 +199,6 @@ export const getAllHoteles = async (
       totalPages: totalPages
     };
     
-    console.log('✅ Hoteles resultado (fallback):', resultado);
     return resultado;
   }
 };

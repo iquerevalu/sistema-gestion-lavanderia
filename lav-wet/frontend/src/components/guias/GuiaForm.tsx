@@ -54,37 +54,23 @@ const GuiaForm: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      console.log('🔄 Cargando datos iniciales para guías...');
-      console.log('👤 Usuario actual:', user);
-      console.log('🏨 Hotel del usuario:', user?.hotel_id);
-      
-      // Importar servicios necesarios
       const { getHotelesForUsers } = await import('../../services/userService');
       const { getChoferes } = await import('../../services/guiaService');
       
-      // Cargar hoteles y choferes desde la BD
       const [hotelesData, choferesData] = await Promise.all([
         getHotelesForUsers(),
         getChoferes()
       ]);
       
-      console.log('🏨 Hoteles cargados:', hotelesData);
-      console.log('🚛 Choferes cargados:', choferesData);
-      
       setHoteles(hotelesData);
       setChoferes(choferesData);
       
-      // Determinar qué hotel pre-seleccionar
       let hotelIdToSelect = '';
       
       if (user?.hotel_id) {
-        // Si el usuario es recepcionista, pre-seleccionar su hotel
         hotelIdToSelect = user.hotel_id.toString();
-        console.log('✅ Pre-seleccionando hotel del recepcionista:', hotelIdToSelect);
       } else if (hotelesData.length > 0) {
-        // Para administrador, pre-seleccionar el primer hotel
         hotelIdToSelect = hotelesData[0].id_hotel?.toString() || '';
-        console.log('✅ Pre-seleccionando primer hotel para admin:', hotelIdToSelect);
       }
       
       if (hotelIdToSelect) {
@@ -92,10 +78,9 @@ const GuiaForm: React.FC = () => {
           ...prev,
           hotel_id: hotelIdToSelect
         }));
-        console.log('✅ Hotel establecido en formData:', hotelIdToSelect);
       }
     } catch (err) {
-      console.error('❌ Error cargando datos iniciales:', err);
+      console.error('Error cargando datos iniciales:', err);
       setError('Error al cargar los datos iniciales');
     }
   };
@@ -104,19 +89,14 @@ const GuiaForm: React.FC = () => {
     try {
       if (!formData.hotel_id) return;
       
-      console.log('🔄 Cargando prendas para hotel:', formData.hotel_id);
-      
       const { getPrendasByHotel } = await import('../../services/guiaService');
       const prendasData = await getPrendasByHotel(parseInt(formData.hotel_id));
       
-      console.log('👕 Prendas cargadas:', prendasData);
-      
       setPrendas(prendasData);
       setFilteredPrendas(prendasData);
-      // Limpiar detalle de prendas al cambiar hotel
       setPrendasDetalle([]);
     } catch (err) {
-      console.error('❌ Error cargando prendas:', err);
+      console.error('Error cargando prendas:', err);
       // Si hay error, usar datos de fallback básicos
       const prendasFallback = [
         { id_prenda: 1, nombre_prenda: 'Sábana Individual', categoria: 'Ropa de Cama', precio_unitario: 5.00 },
@@ -136,6 +116,7 @@ const GuiaForm: React.FC = () => {
       setNumeroGuia(nextNumber);
     } catch (err) {
       console.error('Error obteniendo número de guía:', err);
+      setNumeroGuia(1);
     }
   };
 
@@ -148,10 +129,6 @@ const GuiaForm: React.FC = () => {
   };
 
   const agregarPrenda = () => {
-    console.log('➕ Intentando agregar prenda...');
-    console.log('📦 Prendas disponibles:', prendas.length);
-    console.log('🏨 Hotel seleccionado:', formData.hotel_id);
-    
     if (!formData.hotel_id) {
       setError('Por favor selecciona un hotel primero');
       return;
@@ -171,9 +148,8 @@ const GuiaForm: React.FC = () => {
       es_devuelta: false
     };
     
-    console.log('✅ Agregando nueva prenda al detalle');
     setPrendasDetalle(prev => [...prev, nuevaPrenda]);
-    setError(''); // Limpiar error
+    setError('');
   };
 
   const actualizarPrenda = (index: number, campo: keyof PrendaDetalle, valor: any) => {
@@ -319,8 +295,6 @@ const GuiaForm: React.FC = () => {
           es_devuelta: p.es_devuelta
         }))
       };
-
-      console.log('📤 Enviando guía:', guiaData);
 
       await createGuia(guiaData);
       

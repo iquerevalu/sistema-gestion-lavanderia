@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GuiaLavanderia } from '../../types';
-// import { getAllGuias, updateGuia } from '../../services/guiaService';
-// import { getAllHoteles } from '../../services/hotelService';
+import { getGuiasParaProcesar, procesarGuia } from '../../services/guiaService';
+import { getAllHoteles } from '../../services/hotelService';
+import { getEstadosProcesamiento } from '../../services/estadoService';
 import Pagination from '../common/Pagination';
 import toast from 'react-hot-toast';
 
@@ -36,17 +37,11 @@ const GuiasProcesar: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      // Datos estáticos de hoteles para demostración
-      const hotelesEstaticos = [
-        { id_hotel: 1, nombre_comercial: 'Hotel Plaza', razon_social: 'Hotel Plaza SAC' },
-        { id_hotel: 2, nombre_comercial: 'Hotel Ejecutivo', razon_social: 'Hotel Ejecutivo EIRL' },
-        { id_hotel: 3, nombre_comercial: 'Hotel Boutique', razon_social: 'Boutique Hotels SA' },
-        { id_hotel: 4, nombre_comercial: 'Hotel Marriott', razon_social: 'Marriott International' },
-        { id_hotel: 5, nombre_comercial: 'Hotel Hilton', razon_social: 'Hilton Hotels Corp' }
-      ];
-      setHoteles(hotelesEstaticos);
+      const hotelesData = await getAllHoteles(1, 100);
+      setHoteles(hotelesData.hotels || []);
     } catch (err) {
       console.error('Error cargando datos iniciales:', err);
+      toast.error('Error al cargar hoteles');
     }
   };
 
@@ -55,285 +50,23 @@ const GuiasProcesar: React.FC = () => {
       setLoading(true);
       setError('');
       
-      // Datos estáticos de guías para demostración
-      const guiasEstaticas = [
-        {
-          id_guia: 1,
-          numero_guia: 1001,
-          hotel_id: 1,
-          chofer_recojo_id: 10,
-          recepcionista_recojo_id: 5,
-          nombre_comercial: 'Hotel Plaza',
-          fecha_recoleccion: '2024-11-01',
-          fecha_creacion: '2024-11-01T08:00:00Z',
-          fecha_actualizacion: '2024-11-01T08:00:00Z',
-          estado: 'Registrado' as const,
-          observaciones: 'Recolección normal, sin observaciones especiales',
-          chofer_recojo_nombre: 'Carlos Mendoza',
-          recepcionista_recojo_nombre: 'Ana García',
-          prendas: [
-            {
-              id_detalle: 1,
-              guia_id: 1,
-              hotel_prenda_id: 1,
-              nombre_prenda: 'Sábana Individual',
-              cantidad_sucia: 15,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 5.00
-            },
-            {
-              id_detalle: 2,
-              guia_id: 1,
-              hotel_prenda_id: 2,
-              nombre_prenda: 'Sábana Matrimonial',
-              cantidad_sucia: 8,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 8.00
-            },
-            {
-              id_detalle: 3,
-              guia_id: 1,
-              hotel_prenda_id: 4,
-              nombre_prenda: 'Funda de Almohada',
-              cantidad_sucia: 25,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 2.50
-            },
-            {
-              id_detalle: 4,
-              guia_id: 1,
-              hotel_prenda_id: 17,
-              nombre_prenda: 'Toalla de Baño',
-              cantidad_sucia: 12,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 6.00
-            }
-          ]
-        },
-        {
-          id_guia: 2,
-          numero_guia: 1002,
-          hotel_id: 2,
-          chofer_recojo_id: 11,
-          recepcionista_recojo_id: 6,
-          nombre_comercial: 'Hotel Ejecutivo',
-          fecha_recoleccion: '2024-11-01',
-          fecha_creacion: '2024-11-01T09:30:00Z',
-          fecha_actualizacion: '2024-11-01T14:15:00Z',
-          estado: 'Pendiente' as const,
-          observaciones: 'Algunas toallas con manchas difíciles',
-          chofer_recojo_nombre: 'Luis Rodriguez',
-          recepcionista_recojo_nombre: 'María López',
-          prendas: [
-            {
-              id_detalle: 5,
-              guia_id: 2,
-              hotel_prenda_id: 2,
-              nombre_prenda: 'Sábana Matrimonial',
-              cantidad_sucia: 10,
-              cantidad_limpia: 8,
-              es_devuelta: false,
-              precio_unitario: 8.00
-            },
-            {
-              id_detalle: 6,
-              guia_id: 2,
-              hotel_prenda_id: 17,
-              nombre_prenda: 'Toalla de Baño',
-              cantidad_sucia: 20,
-              cantidad_limpia: 18,
-              es_devuelta: false,
-              precio_unitario: 6.00
-            },
-            {
-              id_detalle: 7,
-              guia_id: 2,
-              hotel_prenda_id: 18,
-              nombre_prenda: 'Toalla de Mano',
-              cantidad_sucia: 15,
-              cantidad_limpia: 15,
-              es_devuelta: false,
-              precio_unitario: 3.50
-            }
-          ]
-        },
-        {
-          id_guia: 3,
-          numero_guia: 1003,
-          hotel_id: 3,
-          chofer_recojo_id: 12,
-          recepcionista_recojo_id: 7,
-          nombre_comercial: 'Hotel Boutique',
-          fecha_recoleccion: '2024-10-31',
-          fecha_creacion: '2024-10-31T16:45:00Z',
-          fecha_actualizacion: '2024-10-31T16:45:00Z',
-          estado: 'Registrado' as const,
-          observaciones: undefined,
-          chofer_recojo_nombre: 'Miguel Torres',
-          recepcionista_recojo_nombre: 'Carmen Silva',
-          prendas: [
-            {
-              id_detalle: 8,
-              guia_id: 3,
-              hotel_prenda_id: 3,
-              nombre_prenda: 'Sábana King Size',
-              cantidad_sucia: 6,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 12.00
-            },
-            {
-              id_detalle: 9,
-              guia_id: 3,
-              hotel_prenda_id: 13,
-              nombre_prenda: 'Edredón Matrimonial',
-              cantidad_sucia: 4,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 25.00
-            },
-            {
-              id_detalle: 10,
-              guia_id: 3,
-              hotel_prenda_id: 21,
-              nombre_prenda: 'Toallón',
-              cantidad_sucia: 8,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 10.00
-            }
-          ]
-        },
-        {
-          id_guia: 4,
-          numero_guia: 1004,
-          hotel_id: 4,
-          chofer_recojo_id: 10,
-          recepcionista_recojo_id: 8,
-          nombre_comercial: 'Hotel Marriott',
-          fecha_recoleccion: '2024-10-30',
-          fecha_creacion: '2024-10-30T11:20:00Z',
-          fecha_actualizacion: '2024-10-30T15:30:00Z',
-          estado: 'Pendiente' as const,
-          observaciones: 'Prenda devuelta por daño previo',
-          chofer_recojo_nombre: 'Carlos Mendoza',
-          recepcionista_recojo_nombre: 'Roberto Díaz',
-          prendas: [
-            {
-              id_detalle: 11,
-              guia_id: 4,
-              hotel_prenda_id: 1,
-              nombre_prenda: 'Sábana Individual',
-              cantidad_sucia: 20,
-              cantidad_limpia: 18,
-              es_devuelta: false,
-              precio_unitario: 5.00
-            },
-            {
-              id_detalle: 12,
-              guia_id: 4,
-              hotel_prenda_id: 6,
-              nombre_prenda: 'Cobertor Individual',
-              cantidad_sucia: 5,
-              cantidad_limpia: 4,
-              es_devuelta: false,
-              precio_unitario: 12.00
-            },
-            {
-              id_detalle: 13,
-              guia_id: 4,
-              hotel_prenda_id: 17,
-              nombre_prenda: 'Toalla de Baño',
-              cantidad_sucia: 1,
-              cantidad_limpia: 0,
-              es_devuelta: true,
-              precio_unitario: 6.00
-            }
-          ]
-        },
-        {
-          id_guia: 5,
-          numero_guia: 1005,
-          hotel_id: 5,
-          chofer_recojo_id: 11,
-          recepcionista_recojo_id: 9,
-          nombre_comercial: 'Hotel Hilton',
-          fecha_recoleccion: '2024-10-29',
-          fecha_creacion: '2024-10-29T13:10:00Z',
-          fecha_actualizacion: '2024-10-29T13:10:00Z',
-          estado: 'Registrado' as const,
-          observaciones: 'Recolección de fin de semana',
-          chofer_recojo_nombre: 'Luis Rodriguez',
-          recepcionista_recojo_nombre: 'Patricia Vega',
-          prendas: [
-            {
-              id_detalle: 14,
-              guia_id: 5,
-              hotel_prenda_id: 2,
-              nombre_prenda: 'Sábana Matrimonial',
-              cantidad_sucia: 12,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 8.00
-            },
-            {
-              id_detalle: 15,
-              guia_id: 5,
-              hotel_prenda_id: 4,
-              nombre_prenda: 'Funda de Almohada',
-              cantidad_sucia: 30,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 2.50
-            },
-            {
-              id_detalle: 16,
-              guia_id: 5,
-              hotel_prenda_id: 22,
-              nombre_prenda: 'Cortina de Baño',
-              cantidad_sucia: 8,
-              cantidad_limpia: 0,
-              es_devuelta: false,
-              precio_unitario: 12.00
-            }
-          ]
-        }
-      ];
-
-      // Aplicar filtros
-      let guiasFiltradas = guiasEstaticas;
+      // Preparar filtros
+      const queryFilters: any = {};
       
       if (filters.numero_guia) {
-        guiasFiltradas = guiasFiltradas.filter(g => 
-          g.numero_guia.toString().includes(filters.numero_guia)
-        );
+        queryFilters.numero_guia = filters.numero_guia;
       }
       
       if (filters.hotel_id) {
-        guiasFiltradas = guiasFiltradas.filter(g => 
-          g.hotel_id.toString() === filters.hotel_id
-        );
+        queryFilters.hotel_id = filters.hotel_id;
       }
 
-      // Solo mostrar estados Registrado y Pendiente
-      guiasFiltradas = guiasFiltradas.filter(g => 
-        ['Registrado', 'Pendiente'].includes(g.estado)
-      );
-
-      // Simular paginación
-      const totalItems = guiasFiltradas.length;
-      const totalPages = Math.ceil(totalItems / itemsPerPage);
-      const startIndex = (page - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const guiasPaginadas = guiasFiltradas.slice(startIndex, endIndex);
-
-      setGuias(guiasPaginadas);
-      setTotalPages(totalPages);
-      setTotalItems(totalItems);
+      // Obtener guías del backend (solo Registrado y Pendiente)
+      const response = await getGuiasParaProcesar(page, itemsPerPage, queryFilters);
+      
+      setGuias(response.guias || []);
+      setTotalPages(response.totalPages || 1);
+      setTotalItems(response.total || 0);
       setCurrentPage(page);
       
     } catch (err: any) {
@@ -598,19 +331,63 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [prendasProcesadas, setPrendasProcesadas] = useState<any[]>([]);
+  const [observaciones, setObservaciones] = useState('');
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState('');
+  const [estadosDisponibles, setEstadosDisponibles] = useState<any[]>([]);
 
   useEffect(() => {
-    // Inicializar prendas procesadas con las cantidades originales
+    // Inicializar prendas procesadas con las cantidades actuales de la BD
     if (guia.prendas) {
       setPrendasProcesadas(
         guia.prendas.map(prenda => ({
           ...prenda,
-          cantidad_limpia: 0,
-          cantidad_pendiente: prenda.cantidad_sucia
+          cantidad_limpia: prenda.cantidad_limpia || 0,
+          cantidad_pendiente: prenda.cantidad_sucia - (prenda.cantidad_limpia || 0)
         }))
       );
     }
+    
+    // Cargar estados disponibles
+    loadEstados();
+    
+    // Establecer el estado actual de la guía si tiene estado_id
+    if (guia.estado_id) {
+      setEstadoSeleccionado(guia.estado_id.toString());
+    }
   }, [guia]);
+
+  const loadEstados = async () => {
+    try {
+      const estados = await getEstadosProcesamiento();
+      console.log('Estados cargados:', estados);
+      setEstadosDisponibles(estados);
+      
+      // Si la guía tiene estado_id, usarlo; sino usar el primero de la lista
+      if (guia.estado_id) {
+        setEstadoSeleccionado(guia.estado_id.toString());
+      } else if (estados.length > 0 && !estadoSeleccionado) {
+        setEstadoSeleccionado(estados[0].id_estado.toString());
+      }
+    } catch (error) {
+      console.error('Error cargando estados:', error);
+      toast.error('Error al cargar estados');
+      
+      // Fallback: usar estados hardcodeados si falla la carga
+      const estadosFallback = [
+        { id_estado: 3, nombre_estado: 'Procesándose' },
+        { id_estado: 2, nombre_estado: 'Pendiente' },
+        { id_estado: 4, nombre_estado: 'Lista para Entregar' }
+      ];
+      setEstadosDisponibles(estadosFallback);
+      
+      // Usar el estado de la guía o el primero por defecto
+      if (guia.estado_id) {
+        setEstadoSeleccionado(guia.estado_id.toString());
+      } else {
+        setEstadoSeleccionado('3');
+      }
+    }
+  };
 
   const actualizarCantidadLimpia = (index: number, cantidadLimpia: number) => {
     setPrendasProcesadas(prev => {
@@ -629,33 +406,44 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
   };
 
   const handleSubmit = async () => {
+    // Validar que se haya seleccionado un estado
+    if (!estadoSeleccionado) {
+      toast.error('Debe seleccionar un estado para la guía');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // Determinar nuevo estado basado en si hay prendas pendientes
-      const hayPendientes = prendasProcesadas.some(p => p.cantidad_pendiente > 0);
-      const nuevoEstado = hayPendientes ? 'Pendiente' : 'Lista para Entregar';
+      // Convertir el ID seleccionado a número
+      const estadoId = parseInt(estadoSeleccionado);
+      
+      console.log('Estado ID seleccionado:', estadoId);
+      console.log('Prendas:', prendasProcesadas.map(p => ({
+        id_detalle: p.id_detalle,
+        cantidad_limpia: p.cantidad_limpia
+      })));
 
-      // Simular guardado exitoso
-      console.log('Procesando guía:', {
-        id_guia: guia.id_guia,
-        estado: nuevoEstado,
-        prendas: prendasProcesadas.map(p => ({
+      // Procesar guía en el backend
+      await procesarGuia(
+        guia.id_guia,
+        prendasProcesadas.map(p => ({
           id_detalle: p.id_detalle,
-          cantidad_limpia: p.cantidad_limpia,
-          cantidad_pendiente: p.cantidad_pendiente
-        }))
-      });
+          cantidad_limpia: p.cantidad_limpia
+        })),
+        observaciones,
+        estadoId
+      );
 
-      // Simular delay de red
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
+      // Obtener el nombre del estado seleccionado
+      const estadoNombre = estadosDisponibles.find(e => e.id_estado === estadoId)?.nombre_estado || 'Actualizado';
+      
       toast.success(
         <div>
           <div className="font-bold text-lg">¡Guía procesada exitosamente!</div>
           <div className="text-sm mt-1">
-            Guía #{guia.numero_guia} • Nuevo estado: <span className="font-semibold">{nuevoEstado}</span>
+            Guía #{guia.numero_guia} • Nuevo estado: <span className="font-semibold">{estadoNombre}</span>
           </div>
         </div>,
         {
@@ -749,6 +537,19 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
           {/* Tabla de prendas */}
           <div className="mb-8">
             <h4 className="text-lg font-semibold text-gray-900 mb-4">Detalle de Prendas</h4>
+            {/* Mensaje informativo */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Ingresa la cantidad total entregada (acumulada)</p>
+                  <p className="text-xs mt-1">El sistema calculará automáticamente las prendas pendientes y actualizará el estado de la guía.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -757,10 +558,10 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
                       Prenda
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cant. Sucia
+                      Cant. Recogida
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cant. Limpia
+                      Cant. Entregada
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Pendiente
@@ -815,15 +616,54 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
             </div>
           </div>
 
-          {/* Observaciones */}
+          {/* Observaciones originales */}
           {guia.observaciones && (
             <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Observaciones</h4>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Observaciones de Recojo</h4>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-gray-700">{guia.observaciones}</p>
               </div>
             </div>
           )}
+
+          {/* Selección de estado */}
+          <div className="mb-6">
+            <label htmlFor="estado" className="block text-sm font-medium text-gray-700 mb-2">
+              Estado
+            </label>
+            <select
+              id="estado"
+              value={estadoSeleccionado}
+              onChange={(e) => setEstadoSeleccionado(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {estadosDisponibles.map(estado => (
+                <option key={estado.id_estado} value={estado.id_estado}>
+                  {estado.nombre_estado}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-sm text-gray-500">
+              {estadoSeleccionado === '3' && '🔄 La guía está siendo procesada actualmente'}
+              {estadoSeleccionado === '2' && '⏳ Quedan prendas por procesar o entregar'}
+              {estadoSeleccionado === '4' && '✅ Todas las prendas están listas para entrega'}
+            </p>
+          </div>
+
+          {/* Campo para nuevas observaciones */}
+          <div className="mb-6">
+            <label htmlFor="observaciones" className="block text-sm font-medium text-gray-700 mb-2">
+              Observaciones del Procesamiento (Opcional)
+            </label>
+            <textarea
+              id="observaciones"
+              rows={3}
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              placeholder="Ingrese observaciones sobre el procesamiento de las prendas..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            />
+          </div>
 
           {/* Botones */}
           <div className="flex justify-end space-x-4">

@@ -7,7 +7,10 @@ import {
     updateEstado,
     getHotelPrendasDisponibles,
     getGuiasParaProcesar,
-    getGuiasTracking
+    getGuiasParaEntregar,
+    getGuiasTracking,
+    getNextGuiaNumber,
+    marcarComoEntregada
 } from '../controllers/guiaController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import {
@@ -15,6 +18,7 @@ import {
     requireOperario,
     requireEncargadoOrAdmin,
     requireOperarioOrAdmin,
+    requireChoferOrAdmin,
     requireOwnHotelGuias
 } from '../middleware/authorization.js';
 
@@ -26,11 +30,17 @@ router.use(authenticateToken);
 // GET /api/guias/procesar - Obtener guías para procesar (solo operarios)
 router.get('/procesar', requireOperario, getGuiasParaProcesar);
 
+// GET /api/guias/entregar - Obtener guías para entregar (choferes y admin)
+router.get('/entregar', requireChoferOrAdmin, getGuiasParaEntregar);
+
 // GET /api/guias/tracking - Obtener guías para tracking (encargados y admin)
 router.get('/tracking', requireEncargadoOrAdmin, requireOwnHotelGuias, getGuiasTracking);
 
 // GET /api/guias/hotel/:hotelId/prendas - Obtener prendas disponibles para un hotel
 router.get('/hotel/:hotelId/prendas', getHotelPrendasDisponibles);
+
+// GET /api/guias/next-number/:hotelId - Obtener siguiente número de guía para un hotel
+router.get('/next-number/:hotelId', getNextGuiaNumber);
 
 // GET /api/guias - Obtener todas las guías (con filtros)
 router.get('/', requireOwnHotelGuias, getGuias);
@@ -46,5 +56,8 @@ router.put('/:id/cantidades', requireOperario, updateCantidades);
 
 // PUT /api/guias/:id/estado - Cambiar estado de guía (operarios y admin)
 router.put('/:id/estado', requireOperarioOrAdmin, updateEstado);
+
+// PUT /api/guias/:id/entregar - Marcar guía como entregada (choferes y admin)
+router.put('/:id/entregar', requireChoferOrAdmin, marcarComoEntregada);
 
 export default router;

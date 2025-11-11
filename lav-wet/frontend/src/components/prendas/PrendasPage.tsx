@@ -15,28 +15,21 @@ const PrendasPage: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
-  // Cargar prendas
   const loadPrendas = async (page: number = currentPage) => {
-    console.log('🚀 loadPrendas iniciado para página:', page);
     try {
       setLoading(true);
       setError('');
-      console.log('📞 Llamando a getAllPrendas...');
       const response = await getAllPrendas(page, itemsPerPage);
-      console.log('📦 Respuesta recibida:', response);
       setPrendas(response.prendas || []);
       setTotalPages(response.totalPages || 1);
       setTotalItems(response.total || 0);
       setCurrentPage(page);
-      console.log('✅ Estado actualizado - prendas:', response.prendas?.length || 0);
     } catch (err: any) {
-      console.error('❌ Error en loadPrendas:', err);
-      setError(err.message || 'Error al cargar prendas');
-      setPrendas([]); // Asegurar que siempre sea un array
       console.error('Error cargando prendas:', err);
+      setError(err.message || 'Error al cargar prendas');
+      setPrendas([]);
     } finally {
       setLoading(false);
-      console.log('🏁 loadPrendas finalizado');
     }
   };
 

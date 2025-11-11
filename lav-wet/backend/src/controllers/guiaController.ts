@@ -5,7 +5,8 @@ import {
   createGuia,
   updateCantidadesProcesadas,
   changeGuiaEstado,
-  getHotelPrendas
+  getHotelPrendas,
+  marcarGuiaComoEntregada
 } from '../services/guiaService.js';
 
 // Obtener todas las guías con filtros
@@ -206,7 +207,10 @@ export const updateCantidades = async (req: Request, res: Response): Promise<voi
     
     const updateData = {
       id_guia: id,
-      prendas: req.body.prendas
+      prendas: req.body.prendas,
+      observaciones: req.body.observaciones,
+      estado: req.body.estado,
+      estado_id: req.body.estado_id
     };
     
     const guia = await updateCantidadesProcesadas(updateData, req.user.userId);
@@ -356,6 +360,45 @@ export const getHotelPrendasDisponibles = async (req: Request, res: Response): P
   }
 };
 
+// Obtener siguiente número de guía para un hotel
+export const getNextGuiaNumber = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const hotelId = parseInt(req.params.hotelId);
+    
+    if (isNaN(hotelId)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'ID de hotel inválido',
+          code: 'INVALID_HOTEL_ID'
+        }
+      });
+      return;
+    }
+    
+    // Importar la función del servicio
+    const { getNextNumeroGuia } = await import('../services/guiaService.js');
+    const nextNumber = await getNextNumeroGuia(hotelId);
+    
+    res.json({
+      success: true,
+      data: {
+        nextNumber
+      }
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo siguiente número de guía:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message || 'Error interno del servidor',
+        code: 'INTERNAL_ERROR'
+      }
+    });
+  }
+};
+
 // Obtener guías para operadores (solo Registrado y Pendiente)
 export const getGuiasParaProcesar = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -364,18 +407,27 @@ export const getGuiasParaProcesar = async (req: Request, res: Response): Promise
     
     // Filtros específicos para operadores
     const filters: any = {
-      estado: req.query.estado || undefined // Permitir filtrar por estado específico
+      estado: req.query.estado || undefined,
+      numero_guia: req.query.numero_guia ? parseInt(req.query.numero_guia as string) : undefined,
+      hotel_id: req.query.hotel_id ? parseInt(req.query.hotel_id as string) : undefined
     };
     
-    // Si no se especifica estado, mostrar solo Registrado y Pendiente
+    // Si no se especifica estado, mostrar Registrado, Pendiente, Procesándose y Entregado Parcial
     if (!filters.estado) {
-      // Para operadores, necesitamos hacer dos consultas separadas
-      const [registradas, pendientes] = await Promise.all([
-        getAllGuias(1, 50, { estado: 'Registrado' }),
-        getAllGuias(1, 50, { estado: 'Pendiente' })
+      // Para operadores, necesitamos hacer cuatro consultas separadas
+      const filtrosRegistrado = { ...filters, estado: 'Registrado' };
+      const filtrosPendiente = { ...filters, estado: 'Pendiente' };
+      const filtrosProcesandose = { ...filters, estado: 'Procesándose' };
+      const filtrosEntregadoParcial = { ...filters, estado: 'Entregado Parcial' };
+      
+      const [registradas, pendientes, procesandose, entregadosParciales] = await Promise.all([
+        getAllGuias(1, 50, filtrosRegistrado),
+        getAllGuias(1, 50, filtrosPendiente),
+        getAllGuias(1, 50, filtrosProcesandose),
+        getAllGuias(1, 50, filtrosEntregadoParcial)
       ]);
       
-      const todasGuias = [...registradas.guias, ...pendientes.guias];
+      const todasGuias = [...registradas.guias, ...pendientes.guias, ...procesandose.guias, ...entregadosParciales.guias];
       const total = todasGuias.length;
       
       // Aplicar paginación manual
@@ -461,6 +513,137 @@ export const getGuiasTracking = async (req: Request, res: Response): Promise<voi
       error: {
         message: error.message || 'Error interno del servidor',
         code: 'INTERNAL_ERROR'
+      }
+    });
+  }
+};
+
+// Obtener guias para entregar (solo Lista para Entregar y Pendiente)
+export const getGuiasParaEntregar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    // Filtros específicos para choferes
+    const filters: any = {
+      numero_guia: req.query.numero_guia ? parseInt(req.query.numero_guia as string) : undefined,
+      hotel_id: req.query.hotel_id ? parseInt(req.query.hotel_id as string) : undefined
+    };
+    
+    // Obtener guías en estado Lista para Entregar y Pendiente
+    // Entregado Parcial NO aparece aquí (debe volver a procesamiento)
+    const filtrosListaParaEntregar = { ...filters, estado: 'Lista para Entregar' };
+    const filtrosPendiente = { ...filters, estado: 'Pendiente' };
+    
+    const [listasParaEntregar, pendientes] = await Promise.all([
+      getAllGuias(1, 50, filtrosListaParaEntregar),
+      getAllGuias(1, 50, filtrosPendiente)
+    ]);
+    
+    const todasGuias = [...listasParaEntregar.guias, ...pendientes.guias];
+    const total = todasGuias.length;
+    
+    // Aplicar paginación manual
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const guiasPaginadas = todasGuias.slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      data: {
+        guias: guiasPaginadas,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo guías para entregar:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message || 'Error interno del servidor',
+        code: 'INTERNAL_ERROR'
+      }
+    });
+  }
+};
+
+
+// Marcar guía como entregada
+export const marcarComoEntregada = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Usuario no autenticado',
+          code: 'NOT_AUTHENTICATED'
+        }
+      });
+      return;
+    }
+
+    const id = parseInt(req.params.id);
+    const { recepcionista_entrega_id, entregado, observaciones } = req.body;
+
+    if (isNaN(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'ID de guía inválido',
+          code: 'INVALID_ID'
+        }
+      });
+      return;
+    }
+
+    if (!recepcionista_entrega_id) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Debe seleccionar una recepcionista',
+          code: 'MISSING_RECEPCIONISTA'
+        }
+      });
+      return;
+    }
+
+    // El chofer es el usuario logueado
+    const choferEntregaId = req.user.userId;
+
+    const guia = await marcarGuiaComoEntregada(
+      id,
+      choferEntregaId,
+      recepcionista_entrega_id,
+      entregado,
+      observaciones
+    );
+
+    res.json({
+      success: true,
+      data: guia
+    });
+  } catch (error: any) {
+    console.error('Error marcando guía como entregada:', error);
+
+    let statusCode = 500;
+    let errorCode = 'INTERNAL_ERROR';
+
+    if (error.message.includes('no encontrada')) {
+      statusCode = 404;
+      errorCode = 'GUIA_NOT_FOUND';
+    } else if (error.message.includes('no está en estado válido')) {
+      statusCode = 400;
+      errorCode = 'INVALID_STATE';
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        message: error.message || 'Error interno del servidor',
+        code: errorCode
       }
     });
   }

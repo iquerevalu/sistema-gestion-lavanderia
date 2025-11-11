@@ -15,26 +15,21 @@ const HotelesPage: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
-  // Cargar hoteles
   const loadHoteles = async (page: number = currentPage) => {
-    console.log('🔄 HotelesPage: Iniciando carga de hoteles, página:', page);
     try {
       setLoading(true);
       setError('');
       const response = await getAllHoteles(page, itemsPerPage);
-      console.log('📦 HotelesPage: Respuesta recibida:', response);
       setHoteles(response.hotels || []);
       setTotalPages(response.totalPages || 1);
       setTotalItems(response.total || 0);
       setCurrentPage(page);
-      console.log('✅ HotelesPage: Estado actualizado - hoteles:', response.hotels?.length || 0);
     } catch (err: any) {
-      console.error('❌ HotelesPage: Error cargando hoteles:', err);
+      console.error('Error cargando hoteles:', err);
       setError(err.message || 'Error al cargar hoteles');
       setHoteles([]);
     } finally {
       setLoading(false);
-      console.log('🏁 HotelesPage: Carga finalizada');
     }
   };
 

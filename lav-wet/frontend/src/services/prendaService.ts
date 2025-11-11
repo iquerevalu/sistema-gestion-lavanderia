@@ -394,8 +394,6 @@ export const createPrenda = async (prendaData: CreatePrendaRequest): Promise<Pre
     return response.data.data || response.data;
   } catch (error) {
     // Simular creación exitosa
-    console.log('Simulando creación de prenda:', prendaData);
-    
     // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -421,8 +419,6 @@ export const updatePrenda = async (prendaData: UpdatePrendaRequest): Promise<Pre
     return response.data.data || response.data;
   } catch (error) {
     // Simular actualización exitosa
-    console.log('Simulando actualización de prenda:', prendaData);
-    
     // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 800));
     
@@ -512,8 +508,6 @@ export const createCategoria = async (nombre: string, descripcion?: string): Pro
     return response.data.data || response.data;
   } catch (error) {
     // Simular creación de categoría
-    console.log('Simulando creación de categoría:', nombre);
-    
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const nuevaCategoria: Categoria = {

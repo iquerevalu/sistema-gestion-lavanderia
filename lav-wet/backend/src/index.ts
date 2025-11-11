@@ -8,6 +8,7 @@ import hotelRoutes from './routes/hotels.js';
 import userRoutes from './routes/users.js';
 import prendaRoutes from './routes/prendas.js';
 import guiaRoutes from './routes/guias.js';
+import estadoRoutes from './routes/estados.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -65,6 +66,9 @@ app.use('/api/prendas', prendaRoutes);
 
 // Rutas de guías
 app.use('/api/guias', guiaRoutes);
+
+// Rutas de estados
+app.use('/api/estados', estadoRoutes);
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {

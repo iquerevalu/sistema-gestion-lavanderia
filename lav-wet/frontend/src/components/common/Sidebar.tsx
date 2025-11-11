@@ -37,9 +37,7 @@ const Sidebar: React.FC = () => {
   const getNavigationItems = () => {
     const items = [];
 
-    // Debug: mostrar información del usuario
-    console.log('👤 Usuario actual:', user);
-    console.log('🔑 Perfil del usuario:', user.nombre_perfil);
+
 
     // Dashboard siempre visible
     items.push({
@@ -75,6 +73,7 @@ const Sidebar: React.FC = () => {
             { to: '/guias', icon: ClipboardList, label: 'Todas las Guías' },
             { to: '/guias/nueva', icon: Plus, label: 'Nueva Guía' },
             { to: '/guias/procesar', icon: Package, label: 'Procesar Guías' },
+            { to: '/guias/entregar', icon: Package, label: 'Entregar Guías' },
             { to: '/guias/tracking', icon: Eye, label: 'Seguimiento' }
           ]
         }
@@ -103,6 +102,14 @@ const Sidebar: React.FC = () => {
         icon: Package,
         label: 'Procesar Guías',
         roles: ['Operario Lavandería']
+      });
+    } else if (user.nombre_perfil === 'Chofer') {
+      items.push({
+        type: 'single',
+        to: '/guias/entregar',
+        icon: Package,
+        label: 'Entregar Guías',
+        roles: ['Chofer']
       });
     } else if (user.nombre_perfil === 'Encargado Hotel') {
       items.push({

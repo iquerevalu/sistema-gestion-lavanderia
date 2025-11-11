@@ -1,5 +1,6 @@
 import { executeQuery, executeTransaction } from '../database/connection.js';
 import { GuiaLavanderia, DetalleGuia, HistorialEstado } from '../types/index.js';
+import { getEstadoId, isEstadoValido, type EstadoGuia } from '../constants/estados.js';
 
 export interface CreateGuiaRequest {
   hotel_id: number;
@@ -28,6 +29,9 @@ export interface UpdateCantidadesRequest {
     id_detalle: number;
     cantidad_limpia: number;
   }[];
+  observaciones?: string;
+  estado?: string;
+  estado_id?: number;
 }
 
 // Obtener todas las guías con filtros
@@ -55,8 +59,16 @@ export const getAllGuias = async (
     }
     
     if (filters.estado) {
-      whereConditions.push('g.estado = ?');
-      queryParams.push(filters.estado);
+      // Convertir nombre de estado a ID si es un string válido
+      if (typeof filters.estado === 'string' && isEstadoValido(filters.estado)) {
+        const estadoId = getEstadoId(filters.estado as EstadoGuia);
+        whereConditions.push('g.estado = ?');
+        queryParams.push(estadoId);
+      } else if (typeof filters.estado === 'number') {
+        // Si ya es un número, usarlo directamente
+        whereConditions.push('g.estado = ?');
+        queryParams.push(filters.estado);
+      }
     }
     
     if (filters.numero_guia) {
@@ -76,7 +88,11 @@ export const getAllGuias = async (
     
     const whereClause = whereConditions.join(' AND ');
     
-    // Consulta para obtener guías
+    // Asegurar que limit y offset son números válidos
+    const safeLimit = Number(limit) || 10;
+    const safeOffset = Number(offset) || 0;
+    
+    // Consulta para obtener guías (usando interpolación segura para LIMIT/OFFSET)
     const guiasQuery = `
       SELECT 
         g.id_guia,
@@ -86,7 +102,8 @@ export const getAllGuias = async (
         g.chofer_entrega_id,
         g.recepcionista_recojo_id,
         g.recepcionista_entrega_id,
-        g.estado,
+        g.estado as estado_id,
+        eg.nombre_estado as estado,
         g.fecha_recoleccion,
         g.fecha_entrega,
         g.observaciones,
@@ -99,13 +116,14 @@ export const getAllGuias = async (
         re.nombre_completo as recepcionista_entrega_nombre
       FROM lv_guia g
       INNER JOIN lv_hotel h ON g.hotel_id = h.id_hotel
+      INNER JOIN lv_estado_guia eg ON g.estado = eg.id_estado
       INNER JOIN lv_usuario cr ON g.chofer_recojo_id = cr.id_usuario
       LEFT JOIN lv_usuario ce ON g.chofer_entrega_id = ce.id_usuario
       INNER JOIN lv_usuario rr ON g.recepcionista_recojo_id = rr.id_usuario
       LEFT JOIN lv_usuario re ON g.recepcionista_entrega_id = re.id_usuario
       WHERE ${whereClause}
       ORDER BY g.fecha_creacion DESC, g.numero_guia DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
     `;
     
     // Consulta para contar total
@@ -116,9 +134,37 @@ export const getAllGuias = async (
     `;
     
     const [guias, countResult] = await Promise.all([
-      executeQuery<GuiaLavanderia>(guiasQuery, [...queryParams, limit, offset]),
+      executeQuery<GuiaLavanderia>(guiasQuery, queryParams),
       executeQuery<{ total: number }>(countQuery, queryParams)
     ]);
+    
+    // Obtener prendas para cada guía
+    if (guias.length > 0) {
+      const guiaIds = guias.map(g => g.id_guia);
+      const prendasQuery = `
+        SELECT 
+          dg.id_detalle,
+          dg.guia_id,
+          dg.hotel_prenda_id,
+          dg.cantidad_sucia,
+          dg.cantidad_limpia,
+          dg.es_devuelta,
+          p.nombre_prenda,
+          hp.precio_unitario
+        FROM lv_detalle_guia dg
+        INNER JOIN lv_hotel_prenda hp ON dg.hotel_prenda_id = hp.id_hotel_prenda
+        INNER JOIN lv_prenda p ON hp.prenda_id = p.id_prenda
+        WHERE dg.guia_id IN (${guiaIds.join(',')})
+        ORDER BY dg.id_detalle
+      `;
+      
+      const prendas = await executeQuery(prendasQuery);
+      
+      // Agrupar prendas por guía
+      guias.forEach(guia => {
+        guia.prendas = prendas.filter((p: any) => p.guia_id === guia.id_guia);
+      });
+    }
     
     return {
       guias,
@@ -143,7 +189,8 @@ export const getGuiaById = async (id: number): Promise<GuiaLavanderia & { prenda
         g.chofer_entrega_id,
         g.recepcionista_recojo_id,
         g.recepcionista_entrega_id,
-        g.estado,
+        g.estado as estado_id,
+        eg.nombre_estado as estado,
         g.fecha_recoleccion,
         g.fecha_entrega,
         g.observaciones,
@@ -156,6 +203,7 @@ export const getGuiaById = async (id: number): Promise<GuiaLavanderia & { prenda
         re.nombre_completo as recepcionista_entrega_nombre
       FROM lv_guia g
       INNER JOIN lv_hotel h ON g.hotel_id = h.id_hotel
+      INNER JOIN lv_estado_guia eg ON g.estado = eg.id_estado
       INNER JOIN lv_usuario cr ON g.chofer_recojo_id = cr.id_usuario
       LEFT JOIN lv_usuario ce ON g.chofer_entrega_id = ce.id_usuario
       INNER JOIN lv_usuario rr ON g.recepcionista_recojo_id = rr.id_usuario
@@ -302,8 +350,9 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
             chofer_recojo_id,
             recepcionista_recojo_id,
             fecha_recoleccion,
-            observaciones
-          ) VALUES (?, ?, ?, ?, ?, ?)
+            observaciones,
+            estado
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
         params: [
           numeroGuia,
@@ -311,7 +360,8 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
           guiaData.chofer_recojo_id,
           recepcionistaId, // Usar el recepcionista calculado (usuario logueado si no se especifica)
           guiaData.fecha_recoleccion,
-          guiaData.observaciones || null
+          guiaData.observaciones || null,
+          1 // Estado inicial: Registrado (id=1)
         ]
       }
     ];
@@ -373,8 +423,11 @@ export const updateCantidadesProcesadas = async (data: UpdateCantidadesRequest, 
     }
     
     // Verificar que la guía está en estado que permite actualizar cantidades
-    if (!['Registrado', 'Pendiente'].includes(guia.estado)) {
-      throw new Error('No se pueden actualizar cantidades en el estado actual de la guía');
+    // Usar IDs en lugar de nombres: 1=Registrado, 2=Pendiente, 3=Procesándose, 6=Entregado Parcial
+    const estadosPermitidosIds = [1, 2, 3, 6];
+    
+    if (!estadosPermitidosIds.includes(guia.estado_id || 0)) {
+      throw new Error(`No se pueden actualizar cantidades en el estado actual (ID: ${guia.estado_id})`);
     }
     
     // Actualizar cantidades
@@ -389,34 +442,82 @@ export const updateCantidadesProcesadas = async (data: UpdateCantidadesRequest, 
     
     await executeTransaction(updateQueries);
     
-    // Verificar si todas las prendas están completas
-    const pendientesQuery = `
-      SELECT COUNT(*) as pendientes
-      FROM lv_detalle_guia
-      WHERE guia_id = ? AND cantidad_limpia < cantidad_sucia
-    `;
-    const pendientesResult = await executeQuery<{ pendientes: number }>(pendientesQuery, [data.id_guia]);
+    // SIEMPRE usar el estado proporcionado por el usuario (ahora por ID)
+    let nuevoEstadoNombre: string;
+    let nuevoEstadoId: number;
+    let cambioEstado = false;
     
-    const nuevoEstado = pendientesResult[0]?.pendientes > 0 ? 'Pendiente' : 'Lista para Entregar';
-    
-    // Actualizar estado si es necesario
-    if (guia.estado !== nuevoEstado) {
+    if (data.estado_id) {
+      // El usuario especificó el estado por ID - SIEMPRE usarlo
+      nuevoEstadoId = data.estado_id;
+      
+      // VALIDACIÓN ESPECIAL: Si el estado es "Lista para Entregar" (ID=4), 
+      // verificar que NO haya prendas pendientes
+      if (nuevoEstadoId === 4) {
+        const pendientesQuery = `
+          SELECT COUNT(*) as pendientes
+          FROM lv_detalle_guia
+          WHERE guia_id = ? AND cantidad_limpia < cantidad_sucia
+        `;
+        const pendientesResult = await executeQuery<{ pendientes: number }>(pendientesQuery, [data.id_guia]);
+        
+        if (pendientesResult[0]?.pendientes > 0) {
+          throw new Error('No se puede marcar como "Lista para Entregar" porque aún hay prendas pendientes');
+        }
+      }
+      
+      // Obtener el nombre del estado para el historial
+      const estadoQuery = await executeQuery<{ nombre_estado: string }>(
+        'SELECT nombre_estado FROM lv_estado_guia WHERE id_estado = ?',
+        [nuevoEstadoId]
+      );
+      
+      if (estadoQuery.length === 0) {
+        throw new Error(`Estado con ID ${nuevoEstadoId} no encontrado`);
+      }
+      
+      nuevoEstadoNombre = estadoQuery[0].nombre_estado;
+      
+      // Comparar case-insensitive para ver si cambió
+      cambioEstado = guia.estado.trim().toLowerCase() !== nuevoEstadoNombre.toLowerCase();
+      
+      // Actualizar estado
       await executeQuery(`
         UPDATE lv_guia 
         SET estado = ?, fecha_actualizacion = CURRENT_TIMESTAMP
         WHERE id_guia = ?
-      `, [nuevoEstado, data.id_guia]);
+      `, [nuevoEstadoId, data.id_guia]);
       
-      // Registrar cambio de estado
-      await executeQuery(`
-        INSERT INTO lv_historial_estado (
-          guia_id,
-          estado_anterior,
-          estado_nuevo,
-          usuario_id,
-          observaciones
-        ) VALUES (?, ?, ?, ?, 'Cantidades actualizadas')
-      `, [data.id_guia, guia.estado, nuevoEstado, usuarioId]);
+      // Registrar cambio de estado si hubo cambio
+      if (cambioEstado) {
+        const observacionesHistorial = data.observaciones 
+          ? `Cantidades actualizadas. ${data.observaciones}` 
+          : 'Cantidades actualizadas';
+        
+        await executeQuery(`
+          INSERT INTO lv_historial_estado (
+            guia_id,
+            estado_anterior,
+            estado_nuevo,
+            usuario_id,
+            observaciones
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [data.id_guia, guia.estado, nuevoEstadoNombre, usuarioId, observacionesHistorial]);
+      } else if (data.observaciones) {
+        // Si no cambió el estado pero hay observaciones, registrarlas igual
+        await executeQuery(`
+          INSERT INTO lv_historial_estado (
+            guia_id,
+            estado_anterior,
+            estado_nuevo,
+            usuario_id,
+            observaciones
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [data.id_guia, guia.estado, nuevoEstadoNombre, usuarioId, data.observaciones]);
+      }
+    } else {
+      // Si no se especificó estado_id, lanzar error (el frontend siempre debe enviar el estado)
+      throw new Error('Debe especificar el ID del estado de la guía');
     }
     
     // Obtener la guía actualizada
@@ -440,25 +541,34 @@ export const changeGuiaEstado = async (guiaId: number, nuevoEstado: string, usua
       throw new Error('Guía no encontrada');
     }
     
+    // Validar que el nuevo estado es válido
+    if (!isEstadoValido(nuevoEstado)) {
+      throw new Error(`Estado inválido: ${nuevoEstado}`);
+    }
+    
     // Validar transiciones de estado permitidas
     const transicionesPermitidas: { [key: string]: string[] } = {
-      'Registrado': ['Pendiente', 'Procesandose'],
-      'Pendiente': ['Procesandose', 'Lista para Entregar'],
-      'Procesandose': ['Lista para Entregar'],
-      'Lista para Entregar': ['En Ruta'],
-      'En Ruta': ['Entregado']
+      'Registrado': ['Pendiente', 'Procesándose'],
+      'Pendiente': ['Procesándose', 'Lista para Entregar'],
+      'Procesándose': ['Pendiente', 'Lista para Entregar'],
+      'Lista para Entregar': ['En Ruta', 'Pendiente'],
+      'En Ruta': ['Entregado', 'Entregado Parcial'],
+      'Entregado Parcial': ['Procesándose', 'Pendiente']
     };
     
     if (!transicionesPermitidas[guia.estado]?.includes(nuevoEstado)) {
       throw new Error(`No se puede cambiar de ${guia.estado} a ${nuevoEstado}`);
     }
     
+    // Convertir nombre de estado a ID
+    const nuevoEstadoId = getEstadoId(nuevoEstado as EstadoGuia);
+    
     // Actualizar estado
     await executeQuery(`
       UPDATE lv_guia 
       SET estado = ?, fecha_actualizacion = CURRENT_TIMESTAMP
       WHERE id_guia = ?
-    `, [nuevoEstado, guiaId]);
+    `, [nuevoEstadoId, guiaId]);
     
     // Registrar en historial
     await executeQuery(`
@@ -506,5 +616,111 @@ export const getHotelPrendas = async (hotelId: number): Promise<any[]> => {
   } catch (error) {
     console.error('Error obteniendo prendas del hotel:', error);
     throw new Error('Error interno del servidor');
+  }
+};
+
+// Obtener siguiente número de guía para un hotel
+export const getNextNumeroGuia = async (hotelId: number): Promise<number> => {
+  try {
+    // Obtener el último número de guía para este hotel
+    const query = `
+      SELECT MAX(numero_guia) as ultimo_numero
+      FROM lv_guia
+      WHERE hotel_id = ?
+    `;
+    
+    const result = await executeQuery<{ ultimo_numero: number | null }>(query, [hotelId]);
+    
+    const ultimoNumero = result[0]?.ultimo_numero || 0;
+    const siguienteNumero = ultimoNumero + 1;
+    
+    console.log(`📊 Hotel ${hotelId}: Último número = ${ultimoNumero}, Siguiente = ${siguienteNumero}`);
+    
+    return siguienteNumero;
+  } catch (error) {
+    console.error('Error obteniendo siguiente número de guía:', error);
+    return 1; // Si hay error, devolver 1 por defecto
+  }
+};
+
+
+// Marcar guía como entregada (para choferes)
+export const marcarGuiaComoEntregada = async (
+  guiaId: number,
+  choferEntregaId: number,
+  recepcionistaEntregaId: number,
+  entregado: boolean,
+  observaciones?: string
+): Promise<GuiaLavanderia> => {
+  try {
+    const guia = await getGuiaById(guiaId);
+    if (!guia) {
+      throw new Error('Guía no encontrada');
+    }
+    
+    // Validar que la guía esté en estado válido para entrega
+    // Usar IDs: 4=Lista para Entregar, 2=Pendiente
+    const estadosValidosEntregaIds = [4, 2];
+    
+    if (!estadosValidosEntregaIds.includes(guia.estado_id || 0)) {
+      throw new Error(`La guía no está en estado válido para entrega (ID: ${guia.estado_id})`);
+    }
+    
+    const nuevoEstadoNombre = entregado ? 'Entregado' : 'Entregado Parcial';
+    const nuevoEstadoId = getEstadoId(nuevoEstadoNombre as EstadoGuia);
+    
+    // Siempre guardar chofer, recepcionista y observaciones
+    // Solo guardar fecha_entrega si se marca como entregado
+    if (entregado) {
+      await executeQuery(`
+        UPDATE lv_guia 
+        SET 
+          estado = ?,
+          chofer_entrega_id = ?,
+          recepcionista_entrega_id = ?,
+          observaciones = ?,
+          fecha_entrega = CURRENT_DATE,
+          fecha_actualizacion = CURRENT_TIMESTAMP
+        WHERE id_guia = ?
+      `, [nuevoEstadoId, choferEntregaId, recepcionistaEntregaId, observaciones || null, guiaId]);
+    } else {
+      // Si queda pendiente, guardar chofer, recepcionista y observaciones pero NO fecha_entrega
+      await executeQuery(`
+        UPDATE lv_guia 
+        SET 
+          estado = ?,
+          chofer_entrega_id = ?,
+          recepcionista_entrega_id = ?,
+          observaciones = ?,
+          fecha_actualizacion = CURRENT_TIMESTAMP
+        WHERE id_guia = ?
+      `, [nuevoEstadoId, choferEntregaId, recepcionistaEntregaId, observaciones || null, guiaId]);
+    }
+    
+    // Registrar en historial
+    const observacionesHistorial = observaciones 
+      ? `Entrega procesada. ${observaciones}` 
+      : 'Entrega procesada';
+    
+    await executeQuery(`
+      INSERT INTO lv_historial_estado (
+        guia_id,
+        estado_anterior,
+        estado_nuevo,
+        usuario_id,
+        observaciones
+      ) VALUES (?, ?, ?, ?, ?)
+    `, [guiaId, guia.estado, nuevoEstadoNombre, choferEntregaId, observacionesHistorial]);
+    
+    // Obtener la guía actualizada
+    const updatedGuia = await getGuiaById(guiaId);
+    if (!updatedGuia) {
+      throw new Error('Error al actualizar la guía');
+    }
+    
+    return updatedGuia;
+  } catch (error: any) {
+    console.error('Error marcando guía como entregada:', error);
+    throw new Error(error.message || 'Error interno del servidor');
   }
 };

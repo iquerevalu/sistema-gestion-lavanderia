@@ -12,6 +12,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import GuiaForm from './components/guias/GuiaForm';
 import GuiasPage from './components/guias/GuiasPage';
 import GuiasProcesar from './components/guias/GuiasProcesar';
+import GuiasEntregar from './components/guias/GuiasEntregar';
 import GuiasSeguimiento from './components/guias/GuiasSeguimiento';
 
 // Placeholder components - se implementarán en tareas posteriores
@@ -52,6 +53,13 @@ function App() {
               <Route path="guias/procesar" element={
                 <ProtectedRoute allowedRoles={['Operario Lavandería', 'Administrador']}>
                   <GuiasProcesar />
+                </ProtectedRoute>
+              } />
+
+              {/* Rutas para Choferes y Administrador */}
+              <Route path="guias/entregar" element={
+                <ProtectedRoute allowedRoles={['Chofer', 'Administrador']}>
+                  <GuiasEntregar />
                 </ProtectedRoute>
               } />
 

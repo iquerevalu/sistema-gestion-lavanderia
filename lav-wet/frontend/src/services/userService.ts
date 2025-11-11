@@ -23,11 +23,8 @@ export interface UsersResponse {
 
 // Obtener todos los usuarios
 export const getAllUsers = async (page: number = 1, limit: number = 10): Promise<UsersResponse> => {
-  console.log('👥 Cargando usuarios de la BD - página:', page);
-  
   try {
     const response = await api.get(`/usuarios?page=${page}&limit=${limit}`);
-    console.log('📦 Respuesta usuarios BD:', response.data);
     
     // El backend devuelve { success: true, data: { users, total, page, totalPages } }
     if (response.data.success && response.data.data) {
@@ -263,17 +260,12 @@ export const getPerfiles = async (): Promise<any[]> => {
 export const getHotelesForUsers = async (): Promise<any[]> => {
   try {
     const response = await api.get('/hoteles?limit=100');
-    console.log('🏨 Respuesta de hoteles:', response.data);
-    
     if (response.data.success && response.data.data) {
-      // La respuesta tiene estructura: { success, data: { hoteles, total, page, totalPages } }
-      const hoteles = response.data.data.hoteles || response.data.data.hotels || [];
-      console.log('🏨 Hoteles extraídos:', hoteles);
-      return hoteles;
+      return response.data.data.hoteles || response.data.data.hotels || [];
     }
     return [];
   } catch (error) {
-    console.error('❌ Error cargando hoteles:', error);
+    console.error('Error cargando hoteles:', error);
     return [];
   }
 };
