@@ -101,17 +101,6 @@ const GuiasProcesar: React.FC = () => {
     setShowProcessModal(false);
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'Registrado':
-        return 'bg-gray-100 text-gray-800 border border-gray-300';
-      case 'Pendiente':
-        return 'bg-gray-100 text-gray-800 border border-gray-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-300';
-    }
-  };
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -253,9 +242,7 @@ const GuiasProcesar: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${getEstadoColor(guia.estado)}`}
-                        >
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-300">
                           {guia.estado}
                         </span>
                       </td>
@@ -359,7 +346,6 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
   const loadEstados = async () => {
     try {
       const estados = await getEstadosProcesamiento();
-      console.log('Estados cargados:', estados);
       setEstadosDisponibles(estados);
       
       // Si la guía tiene estado_id, usarlo; sino usar el primero de la lista
@@ -374,9 +360,9 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
       
       // Fallback: usar estados hardcodeados si falla la carga
       const estadosFallback = [
-        { id_estado: 3, nombre_estado: 'Procesándose' },
-        { id_estado: 2, nombre_estado: 'Pendiente' },
-        { id_estado: 4, nombre_estado: 'Lista para Entregar' }
+        { id_estado: 3, nombre_estado: 'EN PROCESO' },
+        { id_estado: 2, nombre_estado: 'PENDIENTE' },
+        { id_estado: 4, nombre_estado: 'LISTO PARA ENTREGA' }
       ];
       setEstadosDisponibles(estadosFallback);
       
@@ -418,12 +404,6 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
     try {
       // Convertir el ID seleccionado a número
       const estadoId = parseInt(estadoSeleccionado);
-      
-      console.log('Estado ID seleccionado:', estadoId);
-      console.log('Prendas:', prendasProcesadas.map(p => ({
-        id_detalle: p.id_detalle,
-        cantidad_limpia: p.cantidad_limpia
-      })));
 
       // Procesar guía en el backend
       await procesarGuia(
@@ -468,7 +448,8 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
       
       onSuccess();
     } catch (err: any) {
-      const errorMessage = err.message || 'Error al procesar la guía';
+      // Extraer el mensaje de error del response de axios
+      const errorMessage = err.response?.data?.error?.message || err.message || 'Error al procesar la guía';
       setError(errorMessage);
       
       toast.error(
@@ -566,9 +547,6 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Pendiente
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -599,15 +577,6 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {prenda.cantidad_pendiente}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                          prenda.cantidad_pendiente > 0 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {prenda.cantidad_pendiente > 0 ? 'Pendiente' : 'Completo'}
-                        </span>
                       </td>
                     </tr>
                   ))}
@@ -643,11 +612,6 @@ const ProcessModal: React.FC<ProcessModalProps> = ({ guia, onClose, onSuccess })
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-sm text-gray-500">
-              {estadoSeleccionado === '3' && '🔄 La guía está siendo procesada actualmente'}
-              {estadoSeleccionado === '2' && '⏳ Quedan prendas por procesar o entregar'}
-              {estadoSeleccionado === '4' && '✅ Todas las prendas están listas para entrega'}
-            </p>
           </div>
 
           {/* Campo para nuevas observaciones */}

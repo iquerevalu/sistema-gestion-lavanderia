@@ -35,7 +35,8 @@ export interface GuiaLavanderia {
   chofer_entrega_id?: number;
   recepcionista_recojo_id: number;
   recepcionista_entrega_id?: number;
-  estado: 'Registrado' | 'Pendiente' | 'Procesandose' | 'Lista para Entregar' | 'En Ruta' | 'Entregado';
+  estado: 'REGISTRADO' | 'PENDIENTE' | 'EN PROCESO' | 'LISTO PARA ENTREGA' | 'EN RUTA' | 'ENTREGADO' | 'ENTREGA PARCIAL';
+  estado_id?: number; // ID del estado en la tabla lv_estado_guia
   fecha_recoleccion: string;
   fecha_entrega?: string;
   observaciones?: string;

@@ -36,7 +36,7 @@ export const getEstados = async (req: Request, res: Response): Promise<void> => 
 export const getEstadosProcesamiento = async (req: Request, res: Response): Promise<void> => {
   try {
     // Usar IDs en lugar de nombres para evitar problemas de mayúsculas/minúsculas
-    // 2 = Pendiente, 3 = Procesándose, 4 = Lista para Entregar
+    // 2 = PENDIENTE, 3 = EN PROCESO, 4 = LISTO PARA ENTREGA
     const query = `
       SELECT 
         id_estado,

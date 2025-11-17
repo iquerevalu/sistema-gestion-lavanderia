@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { GuiaLavanderia } from '../../types';
-// import { getAllGuias } from '../../services/guiaService';
+import { getGuiasTracking } from '../../services/guiaService';
 import { useAuth } from '../../hooks/useAuth';
 import Pagination from '../common/Pagination';
+import toast from 'react-hot-toast';
 
 const GuiasSeguimiento: React.FC = () => {
   const { user } = useAuth();
@@ -25,12 +26,13 @@ const GuiasSeguimiento: React.FC = () => {
 
   // Estados disponibles para seguimiento
   const estadosDisponibles = [
-    'Registrado',
-    'Pendiente', 
-    'Procesandose',
-    'Lista para Entregar',
-    'En Ruta',
-    'Entregado'
+    'REGISTRADO',
+    'PENDIENTE', 
+    'EN PROCESO',
+    'LISTO PARA ENTREGA',
+    'EN RUTA',
+    'ENTREGA PARCIAL',
+    'ENTREGADO'
   ];
 
   useEffect(() => {
@@ -42,7 +44,31 @@ const GuiasSeguimiento: React.FC = () => {
       setLoading(true);
       setError('');
       
-      // Datos estáticos de guías para demostración con diferentes estados
+      // Preparar filtros
+      const queryFilters: any = {};
+      
+      if (filters.numero_guia) {
+        queryFilters.numero_guia = filters.numero_guia;
+      }
+      
+      if (filters.estado) {
+        queryFilters.estado = filters.estado;
+      }
+      
+      // El hotel_id ya está en los filtros desde el useEffect inicial
+      if (filters.hotel_id) {
+        queryFilters.hotel_id = filters.hotel_id;
+      }
+
+      // Obtener guías del backend
+      const response = await getGuiasTracking(page, itemsPerPage, queryFilters);
+      
+      setGuias(response.guias || []);
+      setTotalPages(response.totalPages || 1);
+      setTotalItems(response.total || 0);
+      setCurrentPage(page);
+      
+      /* DATOS MOCK ELIMINADOS - Ahora usa datos reales
       const guiasEstaticas = [
         {
           id_guia: 1,
@@ -454,44 +480,12 @@ const GuiasSeguimiento: React.FC = () => {
             }
           ]
         }
-      ];
-
-      // Aplicar filtros
-      let guiasFiltradas = guiasEstaticas;
-      
-      if (filters.numero_guia) {
-        guiasFiltradas = guiasFiltradas.filter(g => 
-          g.numero_guia.toString().includes(filters.numero_guia)
-        );
-      }
-      
-      if (filters.estado) {
-        guiasFiltradas = guiasFiltradas.filter(g => 
-          g.estado === filters.estado
-        );
-      }
-
-      if (filters.hotel_id) {
-        guiasFiltradas = guiasFiltradas.filter(g => 
-          g.hotel_id.toString() === filters.hotel_id
-        );
-      }
-
-      // Simular paginación
-      const totalItems = guiasFiltradas.length;
-      const totalPages = Math.ceil(totalItems / itemsPerPage);
-      const startIndex = (page - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const guiasPaginadas = guiasFiltradas.slice(startIndex, endIndex);
-
-      setGuias(guiasPaginadas);
-      setTotalPages(totalPages);
-      setTotalItems(totalItems);
-      setCurrentPage(page);
+      ]; */
       
     } catch (err: any) {
       setError(err.message || 'Error al cargar guías');
       setGuias([]);
+      toast.error('Error al cargar guías');
       console.error('Error cargando guías:', err);
     } finally {
       setLoading(false);
@@ -526,28 +520,31 @@ const GuiasSeguimiento: React.FC = () => {
   };
 
   const getEstadoIcon = (estado: string) => {
-    switch (estado) {
-      case 'Registrado':
+    const estadoUpper = estado.toUpperCase();
+    switch (estadoUpper) {
+      case 'REGISTRADO':
         return '📝';
-      case 'Pendiente':
+      case 'PENDIENTE':
         return '⏳';
-      case 'Procesandose':
+      case 'EN PROCESO':
         return '🔄';
-      case 'Lista para Entregar':
+      case 'LISTO PARA ENTREGA':
         return '✅';
-      case 'En Ruta':
+      case 'EN RUTA':
         return '🚚';
-      case 'Entregado':
+      case 'ENTREGA PARCIAL':
         return '📦';
+      case 'ENTREGADO':
+        return '✅';
       default:
         return '❓';
     }
   };
 
   const getProgreso = (estado: string) => {
-    const estados = ['Registrado', 'Pendiente', 'Procesandose', 'Lista para Entregar', 'En Ruta', 'Entregado'];
-    const index = estados.indexOf(estado);
-    return ((index + 1) / estados.length) * 100;
+    const estados = ['REGISTRADO', 'PENDIENTE', 'EN PROCESO', 'LISTO PARA ENTREGA', 'EN RUTA', 'ENTREGA PARCIAL', 'ENTREGADO'];
+    const index = estados.indexOf(estado.toUpperCase());
+    return index >= 0 ? ((index + 1) / estados.length) * 100 : 0;
   };
 
   return (

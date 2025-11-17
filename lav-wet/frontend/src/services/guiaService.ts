@@ -206,3 +206,17 @@ export const getRecepcionistasByHotel = async (hotelId: number): Promise<any[]> 
     return [];
   }
 };
+
+// Obtener guias para tracking (encargados de hotel)
+export const getGuiasTracking = async (page: number = 1, limit: number = 10, filters?: any): Promise<GuiasResponse> => {
+  let url = `/guias/tracking?page=${page}&limit=${limit}`;
+  
+  if (filters) {
+    if (filters.numero_guia) url += `&numero_guia=${filters.numero_guia}`;
+    if (filters.hotel_id) url += `&hotel_id=${filters.hotel_id}`;
+    if (filters.estado) url += `&estado=${filters.estado}`;
+  }
+  
+  const response = await api.get(url);
+  return response.data.data || response.data;
+};

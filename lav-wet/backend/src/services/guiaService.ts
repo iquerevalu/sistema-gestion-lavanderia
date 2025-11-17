@@ -160,9 +160,29 @@ export const getAllGuias = async (
       
       const prendas = await executeQuery(prendasQuery);
       
-      // Agrupar prendas por guía
+      // Obtener historial para cada guía
+      const historialQuery = `
+        SELECT 
+          h.id_historial,
+          h.guia_id,
+          h.estado_anterior,
+          h.estado_nuevo,
+          h.usuario_id,
+          h.fecha_cambio,
+          h.observaciones,
+          u.nombre_completo as nombre_usuario
+        FROM lv_historial_estado h
+        INNER JOIN lv_usuario u ON h.usuario_id = u.id_usuario
+        WHERE h.guia_id IN (${guiaIds.join(',')})
+        ORDER BY h.fecha_cambio ASC
+      `;
+      
+      const historial = await executeQuery(historialQuery);
+      
+      // Agrupar prendas e historial por guía
       guias.forEach(guia => {
         guia.prendas = prendas.filter((p: any) => p.guia_id === guia.id_guia);
+        guia.historial = historial.filter((h: any) => h.guia_id === guia.id_guia);
       });
     }
     
@@ -271,8 +291,6 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
   try {
     // Si no se especifica recepcionista, usar el usuario logueado
     const recepcionistaId = guiaData.recepcionista_recojo_id || usuarioId;
-    
-    console.log('📝 Creando guía con recepcionista:', recepcionistaId, '(usuario logueado:', usuarioId, ')');
     
     // Verificar que el hotel existe
     const hotelQuery = `
@@ -397,7 +415,7 @@ export const createGuia = async (guiaData: CreateGuiaRequest, usuarioId: number)
         estado_nuevo,
         usuario_id,
         observaciones
-      ) VALUES (?, NULL, 'Registrado', ?, 'Guía creada')
+      ) VALUES (?, NULL, 'REGISTRADO', ?, 'Guía creada')
     `, [guiaId, usuarioId]);
     
     // Obtener la guía creada
@@ -423,7 +441,7 @@ export const updateCantidadesProcesadas = async (data: UpdateCantidadesRequest, 
     }
     
     // Verificar que la guía está en estado que permite actualizar cantidades
-    // Usar IDs en lugar de nombres: 1=Registrado, 2=Pendiente, 3=Procesándose, 6=Entregado Parcial
+    // Usar IDs: 1=REGISTRADO, 2=PENDIENTE, 3=EN PROCESO, 6=ENTREGA PARCIAL
     const estadosPermitidosIds = [1, 2, 3, 6];
     
     if (!estadosPermitidosIds.includes(guia.estado_id || 0)) {
@@ -451,7 +469,7 @@ export const updateCantidadesProcesadas = async (data: UpdateCantidadesRequest, 
       // El usuario especificó el estado por ID - SIEMPRE usarlo
       nuevoEstadoId = data.estado_id;
       
-      // VALIDACIÓN ESPECIAL: Si el estado es "Lista para Entregar" (ID=4), 
+      // VALIDACIÓN ESPECIAL: Si el estado es "LISTO PARA ENTREGA" (ID=4), 
       // verificar que NO haya prendas pendientes
       if (nuevoEstadoId === 4) {
         const pendientesQuery = `
@@ -462,7 +480,7 @@ export const updateCantidadesProcesadas = async (data: UpdateCantidadesRequest, 
         const pendientesResult = await executeQuery<{ pendientes: number }>(pendientesQuery, [data.id_guia]);
         
         if (pendientesResult[0]?.pendientes > 0) {
-          throw new Error('No se puede marcar como "Lista para Entregar" porque aún hay prendas pendientes');
+          throw new Error('No se puede marcar como "LISTO PARA ENTREGA" porque aún hay prendas pendientes');
         }
       }
       
@@ -548,12 +566,12 @@ export const changeGuiaEstado = async (guiaId: number, nuevoEstado: string, usua
     
     // Validar transiciones de estado permitidas
     const transicionesPermitidas: { [key: string]: string[] } = {
-      'Registrado': ['Pendiente', 'Procesándose'],
-      'Pendiente': ['Procesándose', 'Lista para Entregar'],
-      'Procesándose': ['Pendiente', 'Lista para Entregar'],
-      'Lista para Entregar': ['En Ruta', 'Pendiente'],
-      'En Ruta': ['Entregado', 'Entregado Parcial'],
-      'Entregado Parcial': ['Procesándose', 'Pendiente']
+      'REGISTRADO': ['PENDIENTE', 'EN PROCESO'],
+      'PENDIENTE': ['EN PROCESO', 'LISTO PARA ENTREGA'],
+      'EN PROCESO': ['PENDIENTE', 'LISTO PARA ENTREGA'],
+      'LISTO PARA ENTREGA': ['EN RUTA', 'PENDIENTE'],
+      'EN RUTA': ['ENTREGADO', 'ENTREGA PARCIAL'],
+      'ENTREGA PARCIAL': ['EN PROCESO', 'PENDIENTE']
     };
     
     if (!transicionesPermitidas[guia.estado]?.includes(nuevoEstado)) {
@@ -634,8 +652,6 @@ export const getNextNumeroGuia = async (hotelId: number): Promise<number> => {
     const ultimoNumero = result[0]?.ultimo_numero || 0;
     const siguienteNumero = ultimoNumero + 1;
     
-    console.log(`📊 Hotel ${hotelId}: Último número = ${ultimoNumero}, Siguiente = ${siguienteNumero}`);
-    
     return siguienteNumero;
   } catch (error) {
     console.error('Error obteniendo siguiente número de guía:', error);
@@ -659,14 +675,14 @@ export const marcarGuiaComoEntregada = async (
     }
     
     // Validar que la guía esté en estado válido para entrega
-    // Usar IDs: 4=Lista para Entregar, 2=Pendiente
+    // Usar IDs: 4=LISTO PARA ENTREGA, 2=PENDIENTE
     const estadosValidosEntregaIds = [4, 2];
     
     if (!estadosValidosEntregaIds.includes(guia.estado_id || 0)) {
       throw new Error(`La guía no está en estado válido para entrega (ID: ${guia.estado_id})`);
     }
     
-    const nuevoEstadoNombre = entregado ? 'Entregado' : 'Entregado Parcial';
+    const nuevoEstadoNombre = entregado ? 'ENTREGADO' : 'ENTREGA PARCIAL';
     const nuevoEstadoId = getEstadoId(nuevoEstadoNombre as EstadoGuia);
     
     // Siempre guardar chofer, recepcionista y observaciones

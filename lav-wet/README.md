@@ -1,8 +1,8 @@
-# 🧺 Sistema de Gestión de Guías de Lavandería
+#  Sistema de Gestión de Guías de Lavandería
 
 Sistema web moderno para digitalizar y optimizar los procesos de registro, seguimiento y entrega de ropa entre hoteles y lavanderías. Desarrollado con React, TypeScript y Node.js.
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
 - [Características Principales](#-características-principales)
 - [Stack Tecnológico](#-stack-tecnológico)
@@ -14,31 +14,31 @@ Sistema web moderno para digitalizar y optimizar los procesos de registro, segui
 - [Deployment](#-deployment)
 - [Contribución](#-contribución)
 
-## ✨ Características Principales
+## Características Principales
 
-### 🏨 Para Hoteles
+### Para Hoteles
 - **Registro de Guías**: Interfaz intuitiva para registrar nuevas guías de lavandería
 - **Seguimiento en Tiempo Real**: Monitoreo del estado de las prendas con barra de progreso visual
 - **Gestión de Prendas**: Sistema autocompletable para selección rápida de prendas
 - **Historial Completo**: Registro detallado de todos los cambios de estado
 
-### 🧽 Para Lavanderías
+### Para Lavanderías
 - **Procesamiento de Guías**: Interface especializada para operarios de lavandería
 - **Control de Cantidades**: Registro preciso de prendas limpias vs. sucias
 - **Gestión de Excepciones**: Manejo de prendas devueltas o con problemas
 - **Estados Operativos**: Control granular del flujo de trabajo
 
-### 👥 Gestión de Usuarios
+### Gestión de Usuarios
 - **Roles Diferenciados**: Administrador, Recepcionista, Operario, Encargado
 - **Autenticación Segura**: Sistema JWT con tokens de sesión
 - **Permisos Granulares**: Acceso controlado según el rol del usuario
 
-### 📊 Reportes y Analytics
+### Reportes y Analytics
 - **Dashboard Interactivo**: Métricas en tiempo real del sistema
 - **Filtros Avanzados**: Búsqueda por fecha, hotel, estado, etc.
 - **Paginación Inteligente**: Manejo eficiente de grandes volúmenes de datos
 
-## 🛠 Stack Tecnológico
+## Stack Tecnológico
 
 ### Frontend
 - **React 18+** - Framework principal
@@ -62,9 +62,8 @@ Sistema web moderno para digitalizar y optimizar los procesos de registro, segui
 - **ESLint** - Linting de código
 - **Prettier** - Formateo de código
 - **Git** - Control de versiones
-- **Kiro IDE** - Desarrollo asistido por IA
 
-## 🏗 Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -82,41 +81,41 @@ Sistema web moderno para digitalizar y optimizar los procesos de registro, segui
 
 ```
 sistema-gestion-guias-lavanderia/
-├── 📁 frontend/                    # Aplicación React
-│   ├── 📁 src/
-│   │   ├── 📁 components/          # Componentes React
-│   │   │   ├── 📁 auth/           # Autenticación
-│   │   │   ├── 📁 common/         # Componentes reutilizables
-│   │   │   ├── 📁 dashboard/      # Panel principal
-│   │   │   ├── 📁 guias/          # Gestión de guías
-│   │   │   ├── 📁 hoteles/        # Gestión de hoteles
-│   │   │   ├── 📁 prendas/        # Gestión de prendas
-│   │   │   └── 📁 usuarios/       # Gestión de usuarios
-│   │   ├── 📁 contexts/           # Context API
-│   │   ├── 📁 hooks/              # Custom hooks
-│   │   ├── 📁 services/           # Servicios API
-│   │   └── 📁 types/              # Definiciones TypeScript
-│   ├── 📄 index.html
-│   ├── 📄 package.json
-│   └── 📄 vite.config.ts
-├── 📁 backend/                     # API Node.js
-│   ├── 📁 src/
-│   │   ├── 📁 controllers/        # Controladores
-│   │   ├── 📁 database/           # Configuración DB
-│   │   ├── 📁 middleware/         # Middlewares
-│   │   ├── 📁 routes/             # Rutas API
-│   │   ├── 📁 services/           # Lógica de negocio
-│   │   └── 📁 types/              # Tipos TypeScript
-│   ├── 📄 package.json
-│   └── 📄 server.js
-├── 📁 .kiro/specs/                 # Documentación técnica
+├── frontend/                    # Aplicación React
+│   ├── src/
+│   │   ├── components/          # Componentes React
+│   │   │   ├── auth/           # Autenticación
+│   │   │   ├── common/         # Componentes reutilizables
+│   │   │   ├── dashboard/      # Panel principal
+│   │   │   ├── guias/          # Gestión de guías
+│   │   │   ├── hoteles/        # Gestión de hoteles
+│   │   │   ├── prendas/        # Gestión de prendas
+│   │   │   └── usuarios/       # Gestión de usuarios
+│   │   ├── contexts/           # Context API
+│   │   ├── hooks/              # Custom hooks
+│   │   ├── services/           # Servicios API
+│   │   └── types/              # Definiciones TypeScript
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── backend/                     # API Node.js
+│   ├── src/
+│   │   ├── controllers/        # Controladores
+│   │   ├── database/           # Configuración DB
+│   │   ├── middleware/         # Middlewares
+│   │   ├── routes/             # Rutas API
+│   │   ├── services/           # Lógica de negocio
+│   │   └── types/              # Tipos TypeScript
+│   ├── package.json
+│   └── server.js
+├── specs/                 # Documentación técnica
 │   ├── 📄 requirements.md         # Requerimientos
 │   ├── 📄 design.md               # Diseño del sistema
 │   └── 📄 tasks.md                # Tareas de desarrollo
 └── 📄 README.md                   # Este archivo
 ```
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 ### Prerrequisitos
 
@@ -229,25 +228,25 @@ graph TD
 
 ### Funcionalidades Principales
 
-#### 📝 Registro de Guías
+#### Registro de Guías
 - **Autocompletado de prendas**: Sistema inteligente de búsqueda
 - **Validaciones en tiempo real**: Prevención de errores
 - **Cálculo automático**: Totales y precios
 - **Observaciones**: Notas adicionales para casos especiales
 
-#### 🔄 Procesamiento de Guías
+#### Procesamiento de Guías
 - **Interface especializada**: Diseñada para operarios
 - **Control de cantidades**: Registro preciso de prendas procesadas
 - **Manejo de excepciones**: Prendas perdidas, dañadas o devueltas
 - **Actualización de estados**: Flujo automático según el procesamiento
 
-#### 📊 Seguimiento y Monitoreo
+#### Seguimiento y Monitoreo
 - **Vista de tarjetas**: Información visual y organizada
 - **Barra de progreso**: Estado visual del proceso
 - **Historial detallado**: Registro completo de cambios
 - **Filtros avanzados**: Búsqueda eficiente
 
-## 📡 API Documentation
+## API Documentation
 
 ### Endpoints Principales
 
@@ -431,14 +430,9 @@ npm run test:watch
 
 ### Metodología de Desarrollo
 
-Este proyecto sigue **Spec-Driven Development**:
+Este proyecto sigue **Spec-Driven Development** con documentación técnica organizada.
 
-1. **Requirements** (`.kiro/specs/requirements.md`)
-2. **Design** (`.kiro/specs/design.md`)  
-3. **Tasks** (`.kiro/specs/tasks.md`)
-4. **Implementation**
-
-## 🚀 Deployment
+## Deployment
 
 ### Opción 1: Vercel (Recomendado)
 
@@ -499,7 +493,7 @@ NODE_ENV=production
 VITE_API_URL=https://tu-api-backend.vercel.app/api
 ```
 
-## 🤝 Contribución
+## Contribución
 
 ### Cómo Contribuir
 
@@ -534,24 +528,8 @@ Si aplica, agregar screenshots.
 - Versión: [e.g. 1.0.0]
 ```
 
-### Roadmap
 
-- [ ] **v1.1**: Reportes avanzados y analytics
-- [ ] **v1.2**: Notificaciones push y email
-- [ ] **v1.3**: API móvil y app nativa
-- [ ] **v1.4**: Integración con sistemas de facturación
-- [ ] **v2.0**: Multi-tenancy y white-label
 
-## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## 📞 Soporte
-
-- **Email**: soporte@lavanderia-system.com
-- **Documentación**: [docs.lavanderia-system.com](https://docs.lavanderia-system.com)
-- **Issues**: [GitHub Issues](https://github.com/tu-usuario/sistema-gestion-guias-lavanderia/issues)
-
----
 
 **Desarrollado usando React, TypeScript y Node.js**

@@ -231,6 +231,9 @@ export const updateCantidades = async (req: Request, res: Response): Promise<voi
     } else if (error.message.includes('No se pueden actualizar')) {
       statusCode = 409;
       errorCode = 'INVALID_STATE';
+    } else if (error.message.includes('LISTO PARA ENTREGA') || error.message.includes('prendas pendientes')) {
+      statusCode = 400;
+      errorCode = 'VALIDATION_ERROR';
     }
     
     res.status(statusCode).json({
@@ -412,13 +415,13 @@ export const getGuiasParaProcesar = async (req: Request, res: Response): Promise
       hotel_id: req.query.hotel_id ? parseInt(req.query.hotel_id as string) : undefined
     };
     
-    // Si no se especifica estado, mostrar Registrado, Pendiente, Procesándose y Entregado Parcial
+    // Si no se especifica estado, mostrar REGISTRADO, PENDIENTE, EN PROCESO y ENTREGA PARCIAL
     if (!filters.estado) {
       // Para operadores, necesitamos hacer cuatro consultas separadas
-      const filtrosRegistrado = { ...filters, estado: 'Registrado' };
-      const filtrosPendiente = { ...filters, estado: 'Pendiente' };
-      const filtrosProcesandose = { ...filters, estado: 'Procesándose' };
-      const filtrosEntregadoParcial = { ...filters, estado: 'Entregado Parcial' };
+      const filtrosRegistrado = { ...filters, estado: 'REGISTRADO' };
+      const filtrosPendiente = { ...filters, estado: 'PENDIENTE' };
+      const filtrosProcesandose = { ...filters, estado: 'EN PROCESO' };
+      const filtrosEntregadoParcial = { ...filters, estado: 'ENTREGA PARCIAL' };
       
       const [registradas, pendientes, procesandose, entregadosParciales] = await Promise.all([
         getAllGuias(1, 50, filtrosRegistrado),
@@ -518,7 +521,7 @@ export const getGuiasTracking = async (req: Request, res: Response): Promise<voi
   }
 };
 
-// Obtener guias para entregar (solo Lista para Entregar y Pendiente)
+// Obtener guias para entregar (solo LISTO PARA ENTREGA y PENDIENTE)
 export const getGuiasParaEntregar = async (req: Request, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -530,10 +533,10 @@ export const getGuiasParaEntregar = async (req: Request, res: Response): Promise
       hotel_id: req.query.hotel_id ? parseInt(req.query.hotel_id as string) : undefined
     };
     
-    // Obtener guías en estado Lista para Entregar y Pendiente
-    // Entregado Parcial NO aparece aquí (debe volver a procesamiento)
-    const filtrosListaParaEntregar = { ...filters, estado: 'Lista para Entregar' };
-    const filtrosPendiente = { ...filters, estado: 'Pendiente' };
+    // Obtener guías en estado LISTO PARA ENTREGA y PENDIENTE
+    // ENTREGA PARCIAL NO aparece aquí (debe volver a procesamiento)
+    const filtrosListaParaEntregar = { ...filters, estado: 'LISTO PARA ENTREGA' };
+    const filtrosPendiente = { ...filters, estado: 'PENDIENTE' };
     
     const [listasParaEntregar, pendientes] = await Promise.all([
       getAllGuias(1, 50, filtrosListaParaEntregar),
