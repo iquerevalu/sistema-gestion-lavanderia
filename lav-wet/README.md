@@ -432,9 +432,77 @@ npm run test:watch
 
 Este proyecto sigue **Spec-Driven Development** con documentación técnica organizada.
 
-## Deployment
+## 🚀 Deployment
 
-### Opción 1: Vercel (Recomendado)
+### AWS Serverless (Recomendado para Producción)
+
+Este proyecto está configurado para despliegue en AWS usando arquitectura serverless.
+
+#### 🏗️ Arquitectura AWS
+
+```
+Frontend (React)
+    ↓
+S3 + CloudFront (CDN)
+    ↓
+API Gateway
+    ↓
+Lambda (Express)
+    ↓
+Aurora Serverless MySQL
+```
+
+#### 📋 Deployment Rápido
+
+**Backend (Ya desplegado ✅)**
+```bash
+cd backend
+npm run deploy
+# URL: https://bissbx5tza.execute-api.us-east-1.amazonaws.com/prod/api
+```
+
+**Frontend**
+```bash
+cd frontend
+
+# Primera vez: Setup de S3 y CloudFront
+chmod +x setup-aws-frontend.sh
+./setup-aws-frontend.sh
+
+# Deploy regular
+./deploy-s3.sh
+
+# En Windows (PowerShell)
+.\deploy-s3.ps1
+```
+
+#### 📚 Documentación Completa
+
+- **[RESUMEN_DEPLOY.md](./RESUMEN_DEPLOY.md)** - Resumen ejecutivo del deployment
+- **[CHECKLIST_DEPLOY.md](./CHECKLIST_DEPLOY.md)** - Checklist completo paso a paso
+- **[backend/deploy.md](./backend/deploy.md)** - Guía detallada del backend
+- **[frontend/DEPLOY.md](./frontend/DEPLOY.md)** - Guía detallada del frontend
+- **[frontend/DEPLOY_WINDOWS.md](./frontend/DEPLOY_WINDOWS.md)** - Guía específica para Windows
+- **[frontend/COMANDOS_RAPIDOS.md](./frontend/COMANDOS_RAPIDOS.md)** - Referencia rápida de comandos
+
+#### 💰 Costos Estimados
+
+**Uso Moderado**: $45-85/mes
+- Lambda: $5-10
+- Aurora Serverless: $30-50
+- API Gateway: $3-5
+- S3: $1-5
+- CloudFront: $5-15
+
+#### 🔑 URLs de Producción
+
+- **Backend API**: https://bissbx5tza.execute-api.us-east-1.amazonaws.com/prod/api
+- **Frontend S3**: http://lavanderia-frontend-prod.s3-website-us-east-1.amazonaws.com
+- **Frontend CloudFront**: (Configurar después del setup)
+
+---
+
+### Opción 2: Vercel
 
 #### Frontend
 ```bash
@@ -453,7 +521,7 @@ cd backend
 vercel --prod
 ```
 
-### Opción 2: Railway
+### Opción 3: Railway
 
 ```bash
 # Instalar Railway CLI
@@ -465,7 +533,7 @@ railway init
 railway up
 ```
 
-### Opción 3: Docker
+### Opción 4: Docker
 
 ```dockerfile
 # Dockerfile para backend
@@ -481,16 +549,16 @@ CMD ["npm", "start"]
 ### Variables de Entorno para Producción
 
 ```bash
-# Backend
-DB_HOST=tu_host_produccion
-DB_NAME=lavanderia_prod
-DB_USER=usuario_prod
+# Backend (AWS)
+DB_HOST=tu-aurora-endpoint.rds.amazonaws.com
+DB_NAME=lavanderia_db
+DB_USER=admin
 DB_PASSWORD=password_seguro
 JWT_SECRET=jwt_secret_muy_seguro_para_produccion
 NODE_ENV=production
 
-# Frontend
-VITE_API_URL=https://tu-api-backend.vercel.app/api
+# Frontend (AWS)
+VITE_API_URL=https://bissbx5tza.execute-api.us-east-1.amazonaws.com/prod/api
 ```
 
 ## Contribución

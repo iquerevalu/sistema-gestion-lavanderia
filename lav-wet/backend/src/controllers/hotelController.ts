@@ -8,8 +8,6 @@ import {
     searchHotels,
     getHotelPrendasService
 } from '../services/hotelService.js';
-import prendas from '../routes/prendas.js';
-import prendas from '../routes/prendas.js';
 
 // Obtener todos los hoteles
 export const getHotels = async (req: Request, res: Response): Promise<void> => {

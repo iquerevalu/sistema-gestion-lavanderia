@@ -3,13 +3,13 @@ import jwt from 'jsonwebtoken';
 import { JwtPayload } from '../types';
 
 // Extender la interfaz Request para incluir user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
+// declare global {
+//   namespace Express {
+//     interface Request {
+//       user?: JwtPayload;
+//     }
+//   }
+// }
 
 // Función para generar token JWT
 export const generateToken = (payload: Omit<JwtPayload, 'iat' | 'exp'>): string => {
@@ -18,9 +18,9 @@ export const generateToken = (payload: Omit<JwtPayload, 'iat' | 'exp'>): string 
     throw new Error('JWT_SECRET no está configurado');
   }
 
-  return jwt.sign(payload, secret, {
+  return jwt.sign(payload, secret as any, {
     expiresIn: process.env.JWT_EXPIRES_IN || '15m'
-  });
+  } as any);
 };
 
 // Función para generar refresh token
@@ -30,9 +30,9 @@ export const generateRefreshToken = (payload: Omit<JwtPayload, 'iat' | 'exp'>): 
     throw new Error('JWT_SECRET no está configurado');
   }
 
-  return jwt.sign(payload, secret, {
+  return jwt.sign(payload, secret as any, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  });
+  } as any);
 };
 
 // Función para verificar token

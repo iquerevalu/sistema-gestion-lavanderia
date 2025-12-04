@@ -5,11 +5,21 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:local": "copy .env.local .env && tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
-    "migrate": "tsx src/database/migrate.ts"
+    "build:prod": "copy .env.production .env && tsc",
+    "migrate": "tsx src/database/migrate.ts",
+    "deploy": "copy .env.production .env && npm run build && serverless deploy --stage prod",
+    "deploy:dev": "npm run build && serverless deploy --stage dev",
+    "offline": "serverless offline",
+    "logs": "serverless logs -f api --stage prod --tail",
+    "remove": "serverless remove --stage prod",
+    "use:local": "copy .env.local .env && echo Configuración LOCAL activada",
+    "use:prod": "copy .env.production .env && echo Configuración PRODUCCIÓN activada"
   },
   "dependencies": {
+    "aws-sdk": "^2.1692.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -20,6 +30,7 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.6.5",
+    "serverless-http": "^4.0.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {
@@ -28,6 +39,9 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.9.0",
+    "serverless": "^3.40.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-offline": "^13.9.0",
     "tsx": "^4.20.6",
     "typescript": "^5.2.2"
   }

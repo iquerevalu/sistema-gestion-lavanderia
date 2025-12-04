@@ -74,9 +74,10 @@ export const authenticateUser = async (credentials: LoginCredentials): Promise<L
   }
 
   // Crear payload para JWT
-  const jwtPayload: Omit<JwtPayload, 'iat' | 'exp'> = {
+  const jwtPayload: any = {
     userId: user.id_usuario,
     email: user.correo,
+    correo: user.correo,
     perfil: user.nombre_perfil || '',
     perfilId: user.perfil_id,
     hotelId: user.hotel_id || undefined
@@ -109,9 +110,10 @@ export const refreshUserToken = async (refreshToken: string): Promise<{ token: s
     }
 
     // Crear nuevo payload
-    const jwtPayload: Omit<JwtPayload, 'iat' | 'exp'> = {
+    const jwtPayload: any = {
       userId: user.id_usuario,
       email: user.correo,
+      correo: user.correo,
       perfil: user.nombre_perfil || '',
       perfilId: user.perfil_id,
       hotelId: user.hotel_id || undefined
